@@ -81,12 +81,16 @@
                 <Sequence DisplayName="Read Sheets Sequence" sap:VirtualizedContainerService.HintSize="400,200" sap2010:WorkflowViewState.IdRef="Sequence_ReadInput">
                   <ui:ReadRange AddHeaders="True" DataTable="[dt_Claims]" DisplayName="Read Range - Claims Sheet" sap:VirtualizedContainerService.HintSize="338,88" sap2010:WorkflowViewState.IdRef="ReadRange_1" SheetName="Claims" WorkbookPath="[str_InputFilePath]">
                     <ui:ReadRange.Range>
-                      <Literal x:TypeArguments="x:String" Value="" />
+                      <InArgument x:TypeArguments="x:String">
+                        <Literal x:TypeArguments="x:String" Value="" />
+                      </InArgument>
                     </ui:ReadRange.Range>
                   </ui:ReadRange>
                   <ui:ReadRange AddHeaders="True" DataTable="[dt_Policies]" DisplayName="Read Range - Policies Sheet" sap:VirtualizedContainerService.HintSize="338,88" sap2010:WorkflowViewState.IdRef="ReadRange_2" SheetName="Policies" WorkbookPath="[str_InputFilePath]">
                     <ui:ReadRange.Range>
-                      <Literal x:TypeArguments="x:String" Value="" />
+                      <InArgument x:TypeArguments="x:String">
+                        <Literal x:TypeArguments="x:String" Value="" />
+                      </InArgument>
                     </ui:ReadRange.Range>
                   </ui:ReadRange>
                 </Sequence>
