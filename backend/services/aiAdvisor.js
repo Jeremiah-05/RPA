@@ -10,8 +10,9 @@
  * Advisory only: Never alters claim status or bot outcome.
  */
 
+const path = require('path');
 const dotenv = require('dotenv');
-dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 
 /**
  * Builds a deterministic rule-based template summary when no API key is provided
