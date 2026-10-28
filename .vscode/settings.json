@@ -1,0 +1,6 @@
+{
+  "files.associations": {
+    "*.sql": "mysql"
+  },
+  "css.lint.unknownAtRules": "ignore"
+}

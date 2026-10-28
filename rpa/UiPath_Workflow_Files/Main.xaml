@@ -1,0 +1,441 @@
+<Activity mc:Ignorable="sap sap2010" x:Class="Main" mva:VisualBasic.Settings="{x:Null}" xmlns:mva="clr-namespace:Microsoft.VisualBasic.Activities;assembly=System.Activities" sap2010:WorkflowViewState.IdRef="ActivityBuilder_1" xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:s="clr-namespace:System;assembly=System.Private.CoreLib" xmlns:sap="http://schemas.microsoft.com/netfx/2009/xaml/activities/presentation" xmlns:sap2010="http://schemas.microsoft.com/netfx/2010/xaml/activities/presentation" xmlns:scg="clr-namespace:System.Collections.Generic;assembly=System.Private.CoreLib" xmlns:sco="clr-namespace:System.Collections.ObjectModel;assembly=mscorlib" xmlns:sd="clr-namespace:System.Data;assembly=System.Data.Common" xmlns:ui="http://schemas.uipath.com/workflow/activities" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <TextExpression.NamespacesForImplementation>
+    <sco:Collection x:TypeArguments="x:String">
+      <x:String>GlobalConstantsNamespace</x:String>
+      <x:String>GlobalVariablesNamespace</x:String>
+      <x:String>System</x:String>
+      <x:String>System.Activities</x:String>
+      <x:String>System.Activities.Expressions</x:String>
+      <x:String>System.Activities.Statements</x:String>
+      <x:String>System.Collections</x:String>
+      <x:String>System.Collections.Generic</x:String>
+      <x:String>System.Collections.ObjectModel</x:String>
+      <x:String>System.ComponentModel</x:String>
+      <x:String>System.Data</x:String>
+      <x:String>System.IO</x:String>
+      <x:String>System.Linq</x:String>
+      <x:String>System.Runtime.Serialization</x:String>
+      <x:String>System.Xml.Serialization</x:String>
+      <x:String>UiPath.Core</x:String>
+      <x:String>UiPath.Core.Activities</x:String>
+      <x:String>UiPath.Excel.Activities</x:String>
+    </sco:Collection>
+  </TextExpression.NamespacesForImplementation>
+  <TextExpression.ReferencesForImplementation>
+    <sco:Collection x:TypeArguments="AssemblyReference">
+      <AssemblyReference>System.Activities</AssemblyReference>
+      <AssemblyReference>Microsoft.VisualBasic</AssemblyReference>
+      <AssemblyReference>System.Private.CoreLib</AssemblyReference>
+      <AssemblyReference>System.Data</AssemblyReference>
+      <AssemblyReference>System.Data.Common</AssemblyReference>
+      <AssemblyReference>System.Data.DataSetExtensions</AssemblyReference>
+      <AssemblyReference>System</AssemblyReference>
+      <AssemblyReference>System.Drawing</AssemblyReference>
+      <AssemblyReference>System.Core</AssemblyReference>
+      <AssemblyReference>System.Xml</AssemblyReference>
+      <AssemblyReference>System.Xml.Linq</AssemblyReference>
+      <AssemblyReference>UiPath.System.Activities</AssemblyReference>
+      <AssemblyReference>UiPath.UiAutomation.Activities</AssemblyReference>
+      <AssemblyReference>UiPath.Excel.Activities</AssemblyReference>
+      <AssemblyReference>System.Linq</AssemblyReference>
+      <AssemblyReference>System.ObjectModel</AssemblyReference>
+      <AssemblyReference>System.ComponentModel.TypeConverter</AssemblyReference>
+    </sco:Collection>
+  </TextExpression.ReferencesForImplementation>
+  <Sequence DisplayName="Main Sequence - Automated Expense Claim Verification Bot" sap:VirtualizedContainerService.HintSize="850,4300" sap2010:WorkflowViewState.IdRef="Sequence_1">
+    <Sequence.Variables>
+      <Variable x:TypeArguments="x:String" Default="[If(File.Exists(Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, &quot;..\input\claims_input.xlsx&quot;))), Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, &quot;..\input\claims_input.xlsx&quot;)), &quot;E:\RPA 1\rpa\input\claims_input.xlsx&quot;)]" Name="str_InputFilePath" />
+      <Variable x:TypeArguments="x:String" Default="[If(Directory.Exists(Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, &quot;..\output&quot;))), Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, &quot;..\output\claims_verified.xlsx&quot;)), &quot;E:\RPA 1\rpa\output\claims_verified.xlsx&quot;)]" Name="str_OutputFilePath" />
+      <Variable x:TypeArguments="sd:DataTable" Name="dt_Claims" />
+      <Variable x:TypeArguments="sd:DataTable" Name="dt_Policies" />
+      <Variable x:TypeArguments="scg:Dictionary(x:String, x:Double)" Default="[New Dictionary(Of String, Double)()]" Name="dict_PolicyLimits" />
+      <Variable x:TypeArguments="scg:Dictionary(x:String, x:Boolean)" Default="[New Dictionary(Of String, Boolean)()]" Name="dict_ReceiptRequired" />
+      <Variable x:TypeArguments="scg:List(x:String)" Default="[New List(Of String)()]" Name="list_SeenClaimCodes" />
+    </Sequence.Variables>
+    <sap:WorkflowViewStateService.ViewState>
+      <scg:Dictionary x:TypeArguments="x:String, x:Object">
+        <x:Boolean x:Key="IsExpanded">True</x:Boolean>
+      </scg:Dictionary>
+    </sap:WorkflowViewStateService.ViewState>
+    <TryCatch DisplayName="Try Catch - Global Verification Engine" sap:VirtualizedContainerService.HintSize="788,4200" sap2010:WorkflowViewState.IdRef="TryCatch_1">
+      <TryCatch.Try>
+        <Sequence DisplayName="Verification Workflow Body" sap:VirtualizedContainerService.HintSize="750,3950" sap2010:WorkflowViewState.IdRef="Sequence_2">
+          <sap:WorkflowViewStateService.ViewState>
+            <scg:Dictionary x:TypeArguments="x:String, x:Object">
+              <x:Boolean x:Key="IsExpanded">True</x:Boolean>
+            </scg:Dictionary>
+          </sap:WorkflowViewStateService.ViewState>
+          <ui:LogMessage DisplayName="Log Bot Started" sap:VirtualizedContainerService.HintSize="688,92" sap2010:WorkflowViewState.IdRef="LogMessage_1" Level="Info" Message="[&quot;[UiPath Bot] Started Expense Claim Verification Bot. Reading from: &quot; + str_InputFilePath]" />
+          
+          <!-- Pre-flight Validation: Check input file exists -->
+          <If Condition="[Not File.Exists(str_InputFilePath)]" DisplayName="If Input File Missing" sap:VirtualizedContainerService.HintSize="688,240" sap2010:WorkflowViewState.IdRef="If_FileCheck">
+            <If.Then>
+              <Throw Exception="[New FileNotFoundException(&quot;[UiPath Bot Error] Input file claims_input.xlsx not found at: &quot; + str_InputFilePath)]" sap:VirtualizedContainerService.HintSize="200,22" sap2010:WorkflowViewState.IdRef="Throw_1" />
+            </If.Then>
+          </If>
+
+          <!-- Retry Scope 1: Read Input Excel Sheets (3 attempts, 2-sec interval for file locks) -->
+          <ui:RetryScope DisplayName="Retry Scope - Read Input Sheets" sap:VirtualizedContainerService.HintSize="688,360" sap2010:WorkflowViewState.IdRef="RetryScope_1" NumberOfRetries="3" RetryInterval="00:00:02">
+            <ui:RetryScope.ActivityBody>
+              <ActivityAction>
+                <Sequence DisplayName="Read Sheets Sequence" sap:VirtualizedContainerService.HintSize="400,200" sap2010:WorkflowViewState.IdRef="Sequence_ReadInput">
+                  <ui:ReadRange AddHeaders="True" DataTable="[dt_Claims]" DisplayName="Read Range - Claims Sheet" sap:VirtualizedContainerService.HintSize="338,88" sap2010:WorkflowViewState.IdRef="ReadRange_1" SheetName="Claims" WorkbookPath="[str_InputFilePath]">
+                    <ui:ReadRange.Range>
+                      <Literal x:TypeArguments="x:String" Value="" />
+                    </ui:ReadRange.Range>
+                  </ui:ReadRange>
+                  <ui:ReadRange AddHeaders="True" DataTable="[dt_Policies]" DisplayName="Read Range - Policies Sheet" sap:VirtualizedContainerService.HintSize="338,88" sap2010:WorkflowViewState.IdRef="ReadRange_2" SheetName="Policies" WorkbookPath="[str_InputFilePath]">
+                    <ui:ReadRange.Range>
+                      <Literal x:TypeArguments="x:String" Value="" />
+                    </ui:ReadRange.Range>
+                  </ui:ReadRange>
+                </Sequence>
+              </ActivityAction>
+            </ui:RetryScope.ActivityBody>
+            <ui:RetryScope.Condition>
+              <ActivityFunc x:TypeArguments="x:Boolean" />
+            </ui:RetryScope.Condition>
+          </ui:RetryScope>
+
+          <!-- Pre-flight Validation: Verify sheets and mandatory column headers -->
+          <If Condition="[dt_Claims Is Nothing OrElse Not dt_Claims.Columns.Contains(&quot;ClaimCode&quot;) OrElse Not dt_Claims.Columns.Contains(&quot;Amount&quot;) OrElse dt_Policies Is Nothing OrElse Not dt_Policies.Columns.Contains(&quot;Category&quot;) OrElse Not dt_Policies.Columns.Contains(&quot;MaxLimit&quot;)]" DisplayName="If Sheet Validation Fails" sap:VirtualizedContainerService.HintSize="688,240" sap2010:WorkflowViewState.IdRef="If_ValidateSheets">
+            <If.Then>
+              <Throw Exception="[New Exception(&quot;[UiPath Bot Error] Input validation failed: Claims or Policies sheet is missing required columns in &quot; + str_InputFilePath)]" sap:VirtualizedContainerService.HintSize="200,22" sap2010:WorkflowViewState.IdRef="Throw_2" />
+            </If.Then>
+          </If>
+
+          <!-- Cache Policy Rules into Memory Dictionaries -->
+          <ui:ForEachRow ColumnNames="{x:Null}" CurrentIndex="{x:Null}" DataTable="[dt_Policies]" DisplayName="For Each Policy Row" sap:VirtualizedContainerService.HintSize="688,400" sap2010:WorkflowViewState.IdRef="ForEachRow_1">
+            <ui:ForEachRow.Body>
+              <ActivityAction x:TypeArguments="sd:DataRow">
+                <ActivityAction.Argument>
+                  <DelegateInArgument x:TypeArguments="sd:DataRow" Name="PolicyRow" />
+                </ActivityAction.Argument>
+                <Sequence DisplayName="Populate Policy Cache" sap:VirtualizedContainerService.HintSize="400,280" sap2010:WorkflowViewState.IdRef="Sequence_3">
+                  <Assign DisplayName="Add Policy MaxLimit" sap:VirtualizedContainerService.HintSize="338,61" sap2010:WorkflowViewState.IdRef="Assign_1">
+                    <Assign.To>
+                      <OutArgument x:TypeArguments="x:Double">[dict_PolicyLimits(PolicyRow("Category").ToString().Trim())]</OutArgument>
+                    </Assign.To>
+                    <Assign.Value>
+                      <InArgument x:TypeArguments="x:Double">[Convert.ToDouble(PolicyRow("MaxLimit"))]</InArgument>
+                    </Assign.Value>
+                  </Assign>
+                  <Assign DisplayName="Add Policy ReceiptRequired" sap:VirtualizedContainerService.HintSize="338,61" sap2010:WorkflowViewState.IdRef="Assign_2">
+                    <Assign.To>
+                      <OutArgument x:TypeArguments="x:Boolean">[dict_ReceiptRequired(PolicyRow("Category").ToString().Trim())]</OutArgument>
+                    </Assign.To>
+                    <Assign.Value>
+                      <InArgument x:TypeArguments="x:Boolean">[PolicyRow("ReceiptRequired").ToString().Trim().ToUpper().Equals("TRUE")]</InArgument>
+                    </Assign.Value>
+                  </Assign>
+                </Sequence>
+              </ActivityAction>
+            </ui:ForEachRow.Body>
+          </ui:ForEachRow>
+          
+          <ui:LogMessage DisplayName="Log Policies Loaded" sap:VirtualizedContainerService.HintSize="688,92" sap2010:WorkflowViewState.IdRef="LogMessage_2" Level="Info" Message="[&quot;[UiPath Bot] Successfully cached &quot; + dict_PolicyLimits.Count.ToString() + &quot; category policies.&quot;]" />
+          
+          <!-- Add 5 Verification Result Columns to dt_Claims -->
+          <ui:AddDataColumn x:TypeArguments="x:String" AutoIncrement="{x:Null}" Column="{x:Null}" DefaultValue="{x:Null}" MaxLength="{x:Null}" Unique="{x:Null}" AllowDBNull="True" ColumnName="Outcome" DataTable="[dt_Claims]" DisplayName="Add Column Outcome" sap:VirtualizedContainerService.HintSize="688,52" sap2010:WorkflowViewState.IdRef="AddDataColumn_1" />
+          <ui:AddDataColumn x:TypeArguments="x:String" AutoIncrement="{x:Null}" Column="{x:Null}" DefaultValue="{x:Null}" MaxLength="{x:Null}" Unique="{x:Null}" AllowDBNull="True" ColumnName="Violations" DataTable="[dt_Claims]" DisplayName="Add Column Violations" sap:VirtualizedContainerService.HintSize="688,52" sap2010:WorkflowViewState.IdRef="AddDataColumn_2" />
+          <ui:AddDataColumn x:TypeArguments="x:String" AutoIncrement="{x:Null}" Column="{x:Null}" DefaultValue="{x:Null}" MaxLength="{x:Null}" Unique="{x:Null}" AllowDBNull="True" ColumnName="BotTimestamp" DataTable="[dt_Claims]" DisplayName="Add Column BotTimestamp" sap:VirtualizedContainerService.HintSize="688,52" sap2010:WorkflowViewState.IdRef="AddDataColumn_3" />
+          <ui:AddDataColumn x:TypeArguments="x:Double" AutoIncrement="{x:Null}" Column="{x:Null}" DefaultValue="{x:Null}" MaxLength="{x:Null}" Unique="{x:Null}" AllowDBNull="True" ColumnName="CheckedAmount" DataTable="[dt_Claims]" DisplayName="Add Column CheckedAmount" sap:VirtualizedContainerService.HintSize="688,52" sap2010:WorkflowViewState.IdRef="AddDataColumn_4" />
+          <ui:AddDataColumn x:TypeArguments="x:Double" AutoIncrement="{x:Null}" Column="{x:Null}" DefaultValue="{x:Null}" MaxLength="{x:Null}" Unique="{x:Null}" AllowDBNull="True" ColumnName="PolicyLimitApplied" DataTable="[dt_Claims]" DisplayName="Add Column PolicyLimitApplied" sap:VirtualizedContainerService.HintSize="688,52" sap2010:WorkflowViewState.IdRef="AddDataColumn_5" />
+          
+          <!-- Iterate Through Claims with Per-Row Safety -->
+          <ui:ForEachRow ColumnNames="{x:Null}" CurrentIndex="{x:Null}" DataTable="[dt_Claims]" DisplayName="For Each Claim Row" sap:VirtualizedContainerService.HintSize="688,1850" sap2010:WorkflowViewState.IdRef="ForEachRow_2">
+            <ui:ForEachRow.Body>
+              <ActivityAction x:TypeArguments="sd:DataRow">
+                <ActivityAction.Argument>
+                  <DelegateInArgument x:TypeArguments="sd:DataRow" Name="ClaimRow" />
+                </ActivityAction.Argument>
+                
+                <!-- Per-Row Safety TryCatch: Isolates errors to the affected row -->
+                <TryCatch DisplayName="Try Catch - Row Safety" sap:VirtualizedContainerService.HintSize="654,1730" sap2010:WorkflowViewState.IdRef="TryCatch_Row">
+                  <TryCatch.Try>
+                    <Sequence DisplayName="Validate Claim Rules" sap:VirtualizedContainerService.HintSize="616,1500" sap2010:WorkflowViewState.IdRef="Sequence_4">
+                      <Sequence.Variables>
+                        <Variable x:TypeArguments="scg:List(x:String)" Default="[New List(Of String)()]" Name="list_Violations" />
+                        <Variable x:TypeArguments="x:Boolean" Default="False" Name="isDuplicate" />
+                        <Variable x:TypeArguments="x:String" Name="str_ClaimCode" />
+                        <Variable x:TypeArguments="x:String" Name="str_Category" />
+                        <Variable x:TypeArguments="x:Double" Name="dbl_Amount" />
+                        <Variable x:TypeArguments="x:String" Name="str_ExpenseDate" />
+                        <Variable x:TypeArguments="x:String" Name="str_ReceiptPath" />
+                        <Variable x:TypeArguments="s:DateTime" Name="dt_ParsedExpenseDate" />
+                        <Variable x:TypeArguments="x:Double" Default="0" Name="dbl_AppliedLimit" />
+                        <Variable x:TypeArguments="x:String" Name="str_Outcome" />
+                      </Sequence.Variables>
+                      <sap:WorkflowViewStateService.ViewState>
+                        <scg:Dictionary x:TypeArguments="x:String, x:Object">
+                          <x:Boolean x:Key="IsExpanded">True</x:Boolean>
+                        </scg:Dictionary>
+                      </sap:WorkflowViewStateService.ViewState>
+                      
+                      <Assign DisplayName="Extract ClaimCode" sap:VirtualizedContainerService.HintSize="554,61" sap2010:WorkflowViewState.IdRef="Assign_3">
+                        <Assign.To>
+                          <OutArgument x:TypeArguments="x:String">[str_ClaimCode]</OutArgument>
+                        </Assign.To>
+                        <Assign.Value>
+                          <InArgument x:TypeArguments="x:String">[ClaimRow("ClaimCode").ToString().Trim()]</InArgument>
+                        </Assign.Value>
+                      </Assign>
+                      
+                      <Assign DisplayName="Extract Category" sap:VirtualizedContainerService.HintSize="554,61" sap2010:WorkflowViewState.IdRef="Assign_4">
+                        <Assign.To>
+                          <OutArgument x:TypeArguments="x:String">[str_Category]</OutArgument>
+                        </Assign.To>
+                        <Assign.Value>
+                          <InArgument x:TypeArguments="x:String">[ClaimRow("Category").ToString().Trim()]</InArgument>
+                        </Assign.Value>
+                      </Assign>
+                      
+                      <Assign DisplayName="Extract Amount" sap:VirtualizedContainerService.HintSize="554,61" sap2010:WorkflowViewState.IdRef="Assign_5">
+                        <Assign.To>
+                          <OutArgument x:TypeArguments="x:Double">[dbl_Amount]</OutArgument>
+                        </Assign.To>
+                        <Assign.Value>
+                          <InArgument x:TypeArguments="x:Double">[If(Double.TryParse(ClaimRow("Amount").ToString(), dbl_Amount), dbl_Amount, 0.0)]</InArgument>
+                        </Assign.Value>
+                      </Assign>
+                      
+                      <Assign DisplayName="Extract ExpenseDate" sap:VirtualizedContainerService.HintSize="554,61" sap2010:WorkflowViewState.IdRef="Assign_6">
+                        <Assign.To>
+                          <OutArgument x:TypeArguments="x:String">[str_ExpenseDate]</OutArgument>
+                        </Assign.To>
+                        <Assign.Value>
+                          <InArgument x:TypeArguments="x:String">[ClaimRow("ExpenseDate").ToString().Trim()]</InArgument>
+                        </Assign.Value>
+                      </Assign>
+                      
+                      <Assign DisplayName="Extract ReceiptPath" sap:VirtualizedContainerService.HintSize="554,61" sap2010:WorkflowViewState.IdRef="Assign_7">
+                        <Assign.To>
+                          <OutArgument x:TypeArguments="x:String">[str_ReceiptPath]</OutArgument>
+                        </Assign.To>
+                        <Assign.Value>
+                          <InArgument x:TypeArguments="x:String">[ClaimRow("ReceiptPath").ToString().Trim()]</InArgument>
+                        </Assign.Value>
+                      </Assign>
+                      
+                      <!-- Rule 1: Duplicate Claim Check -->
+                      <If Condition="[list_SeenClaimCodes.Contains(str_ClaimCode)]" DisplayName="If Duplicate Claim" sap:VirtualizedContainerService.HintSize="554,240" sap2010:WorkflowViewState.IdRef="If_1">
+                        <If.Then>
+                          <Sequence DisplayName="Flag Duplicate" sap:VirtualizedContainerService.HintSize="242,114" sap2010:WorkflowViewState.IdRef="Sequence_5">
+                            <AddToCollection x:TypeArguments="x:String" Collection="[list_Violations]" DisplayName="Add Violation Duplicate" sap:VirtualizedContainerService.HintSize="200,22" sap2010:WorkflowViewState.IdRef="AddToCollection_1" Item="Duplicate submission" />
+                            <Assign DisplayName="Set isDuplicate" sap:VirtualizedContainerService.HintSize="200,22" sap2010:WorkflowViewState.IdRef="Assign_8">
+                              <Assign.To>
+                                <OutArgument x:TypeArguments="x:Boolean">[isDuplicate]</OutArgument>
+                              </Assign.To>
+                              <Assign.Value>
+                                <InArgument x:TypeArguments="x:Boolean">True</InArgument>
+                              </Assign.Value>
+                            </Assign>
+                          </Sequence>
+                        </If.Then>
+                        <If.Else>
+                          <AddToCollection x:TypeArguments="x:String" Collection="[list_SeenClaimCodes]" DisplayName="Record Seen Code" sap:VirtualizedContainerService.HintSize="200,22" sap2010:WorkflowViewState.IdRef="AddToCollection_2" Item="[str_ClaimCode]" />
+                        </If.Else>
+                      </If>
+                      
+                      <!-- Rule 2: Category Validation -->
+                      <If Condition="[String.IsNullOrWhiteSpace(str_Category)]" DisplayName="If Missing Category" sap:VirtualizedContainerService.HintSize="554,210" sap2010:WorkflowViewState.IdRef="If_2">
+                        <If.Then>
+                          <AddToCollection x:TypeArguments="x:String" Collection="[list_Violations]" DisplayName="Add Incomplete claim" sap:VirtualizedContainerService.HintSize="200,22" sap2010:WorkflowViewState.IdRef="AddToCollection_3" Item="Incomplete claim" />
+                        </If.Then>
+                        <If.Else>
+                          <If Condition="[Not dict_PolicyLimits.ContainsKey(str_Category)]" DisplayName="If Category Not in Policy" sap:VirtualizedContainerService.HintSize="200,22" sap2010:WorkflowViewState.IdRef="If_3">
+                            <If.Then>
+                              <AddToCollection x:TypeArguments="x:String" Collection="[list_Violations]" DisplayName="Add Category not recognized" sap:VirtualizedContainerService.HintSize="200,22" sap2010:WorkflowViewState.IdRef="AddToCollection_4" Item="Category not recognized" />
+                            </If.Then>
+                          </If>
+                        </If.Else>
+                      </If>
+                      
+                      <!-- Rule 3: Category Limit Enforcement -->
+                      <If Condition="[dict_PolicyLimits.ContainsKey(str_Category)]" DisplayName="If Policy Exists Check Limit" sap:VirtualizedContainerService.HintSize="554,210" sap2010:WorkflowViewState.IdRef="If_4">
+                        <If.Then>
+                          <Sequence DisplayName="Limit Evaluation" sap:VirtualizedContainerService.HintSize="242,114" sap2010:WorkflowViewState.IdRef="Sequence_6">
+                            <Assign DisplayName="Assign Applied Limit" sap:VirtualizedContainerService.HintSize="200,22" sap2010:WorkflowViewState.IdRef="Assign_9">
+                              <Assign.To>
+                                <OutArgument x:TypeArguments="x:Double">[dbl_AppliedLimit]</OutArgument>
+                              </Assign.To>
+                              <Assign.Value>
+                                <InArgument x:TypeArguments="x:Double">[dict_PolicyLimits(str_Category)]</InArgument>
+                              </Assign.Value>
+                            </Assign>
+                            <If Condition="[dbl_Amount &gt; dbl_AppliedLimit]" DisplayName="If Exceeds Limit" sap:VirtualizedContainerService.HintSize="200,22" sap2010:WorkflowViewState.IdRef="If_5">
+                              <If.Then>
+                                <AddToCollection x:TypeArguments="x:String" Collection="[list_Violations]" DisplayName="Add Exceeds category limit" sap:VirtualizedContainerService.HintSize="200,22" sap2010:WorkflowViewState.IdRef="AddToCollection_5" Item="Exceeds category limit" />
+                              </If.Then>
+                            </If>
+                          </Sequence>
+                        </If.Then>
+                      </If>
+                      
+                      <!-- Rule 4: Mandatory Receipt Check -->
+                      <If Condition="[dict_ReceiptRequired.ContainsKey(str_Category) AndAlso dict_ReceiptRequired(str_Category) = True AndAlso String.IsNullOrWhiteSpace(str_ReceiptPath)]" DisplayName="If Receipt Missing" sap:VirtualizedContainerService.HintSize="554,150" sap2010:WorkflowViewState.IdRef="If_6">
+                        <If.Then>
+                          <AddToCollection x:TypeArguments="x:String" Collection="[list_Violations]" DisplayName="Add Receipt missing" sap:VirtualizedContainerService.HintSize="200,22" sap2010:WorkflowViewState.IdRef="AddToCollection_6" Item="Receipt missing" />
+                        </If.Then>
+                      </If>
+                      
+                      <!-- Rule 5: Expense Date Validation -->
+                      <If Condition="[DateTime.TryParse(str_ExpenseDate, dt_ParsedExpenseDate)]" DisplayName="If Date Parseable" sap:VirtualizedContainerService.HintSize="554,210" sap2010:WorkflowViewState.IdRef="If_7">
+                        <If.Then>
+                          <If Condition="[dt_ParsedExpenseDate.Date &gt; DateTime.Today]" DisplayName="If Date in Future" sap:VirtualizedContainerService.HintSize="200,22" sap2010:WorkflowViewState.IdRef="If_8">
+                            <If.Then>
+                              <AddToCollection x:TypeArguments="x:String" Collection="[list_Violations]" DisplayName="Add Invalid date" sap:VirtualizedContainerService.HintSize="200,22" sap2010:WorkflowViewState.IdRef="AddToCollection_7" Item="Invalid date" />
+                            </If.Then>
+                          </If>
+                        </If.Then>
+                        <If.Else>
+                          <AddToCollection x:TypeArguments="x:String" Collection="[list_Violations]" DisplayName="Add Invalid date format" sap:VirtualizedContainerService.HintSize="200,22" sap2010:WorkflowViewState.IdRef="AddToCollection_8" Item="Invalid date" />
+                        </If.Else>
+                      </If>
+                      
+                      <!-- Final Outcome Determination -->
+                      <Assign DisplayName="Evaluate Final Outcome" sap:VirtualizedContainerService.HintSize="554,61" sap2010:WorkflowViewState.IdRef="Assign_10">
+                        <Assign.To>
+                          <OutArgument x:TypeArguments="x:String">[str_Outcome]</OutArgument>
+                        </Assign.To>
+                        <Assign.Value>
+                          <InArgument x:TypeArguments="x:String">[If(isDuplicate, "Rejected", If(list_Violations.Count &gt; 0, "Flagged", "Verified - Pending Approval"))]</InArgument>
+                        </Assign.Value>
+                      </Assign>
+                      
+                      <!-- Assign Audit Columns -->
+                      <Assign DisplayName="Set Outcome Column" sap:VirtualizedContainerService.HintSize="554,61" sap2010:WorkflowViewState.IdRef="Assign_11">
+                        <Assign.To>
+                          <OutArgument x:TypeArguments="x:Object">[ClaimRow("Outcome")]</OutArgument>
+                        </Assign.To>
+                        <Assign.Value>
+                          <InArgument x:TypeArguments="x:Object">[str_Outcome]</InArgument>
+                        </Assign.Value>
+                      </Assign>
+                      <Assign DisplayName="Set Violations Column" sap:VirtualizedContainerService.HintSize="554,61" sap2010:WorkflowViewState.IdRef="Assign_12">
+                        <Assign.To>
+                          <OutArgument x:TypeArguments="x:Object">[ClaimRow("Violations")]</OutArgument>
+                        </Assign.To>
+                        <Assign.Value>
+                          <InArgument x:TypeArguments="x:Object">[If(list_Violations.Count &gt; 0, String.Join("; ", list_Violations), "")]</InArgument>
+                        </Assign.Value>
+                      </Assign>
+                      <Assign DisplayName="Set BotTimestamp Column" sap:VirtualizedContainerService.HintSize="554,61" sap2010:WorkflowViewState.IdRef="Assign_13">
+                        <Assign.To>
+                          <OutArgument x:TypeArguments="x:Object">[ClaimRow("BotTimestamp")]</OutArgument>
+                        </Assign.To>
+                        <Assign.Value>
+                          <InArgument x:TypeArguments="x:Object">[DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")]</InArgument>
+                        </Assign.Value>
+                      </Assign>
+                      <Assign DisplayName="Set CheckedAmount Column" sap:VirtualizedContainerService.HintSize="554,61" sap2010:WorkflowViewState.IdRef="Assign_14">
+                        <Assign.To>
+                          <OutArgument x:TypeArguments="x:Object">[ClaimRow("CheckedAmount")]</OutArgument>
+                        </Assign.To>
+                        <Assign.Value>
+                          <InArgument x:TypeArguments="x:Object">[dbl_Amount]</InArgument>
+                        </Assign.Value>
+                      </Assign>
+                      <Assign DisplayName="Set PolicyLimitApplied Column" sap:VirtualizedContainerService.HintSize="554,61" sap2010:WorkflowViewState.IdRef="Assign_15">
+                        <Assign.To>
+                          <OutArgument x:TypeArguments="x:Object">[ClaimRow("PolicyLimitApplied")]</OutArgument>
+                        </Assign.To>
+                        <Assign.Value>
+                          <InArgument x:TypeArguments="x:Object">[dbl_AppliedLimit]</InArgument>
+                        </Assign.Value>
+                      </Assign>
+                    </Sequence>
+                  </TryCatch.Try>
+                  
+                  <!-- Catch per-row exception: Flag as Invalid data and continue batch -->
+                  <TryCatch.Catches>
+                    <Catch x:TypeArguments="s:Exception" sap:VirtualizedContainerService.HintSize="620,21" sap2010:WorkflowViewState.IdRef="Catch_Row_1">
+                      <sap:WorkflowViewStateService.ViewState>
+                        <scg:Dictionary x:TypeArguments="x:String, x:Object">
+                          <x:Boolean x:Key="IsExpanded">False</x:Boolean>
+                          <x:Boolean x:Key="IsPinned">False</x:Boolean>
+                        </scg:Dictionary>
+                      </sap:WorkflowViewStateService.ViewState>
+                      <ActivityAction x:TypeArguments="s:Exception">
+                        <ActivityAction.Argument>
+                          <DelegateInArgument x:TypeArguments="s:Exception" Name="rowException" />
+                        </ActivityAction.Argument>
+                        <Sequence DisplayName="Handle Malformed Row" sap:VirtualizedContainerService.HintSize="400,320" sap2010:WorkflowViewState.IdRef="Sequence_RowError">
+                          <ui:LogMessage DisplayName="Log Row Warning" Level="Warn" Message="[&quot;[UiPath Bot Warning] Row verification failed on claim, tagging as Invalid data: &quot; + rowException.Message]" />
+                          <Assign DisplayName="Set Flagged for bad row" sap:VirtualizedContainerService.HintSize="338,61" sap2010:WorkflowViewState.IdRef="Assign_RowOutcome">
+                            <Assign.To>
+                              <OutArgument x:TypeArguments="x:Object">[ClaimRow("Outcome")]</OutArgument>
+                            </Assign.To>
+                            <Assign.Value>
+                              <InArgument x:TypeArguments="x:Object">["Flagged"]</InArgument>
+                            </Assign.Value>
+                          </Assign>
+                          <Assign DisplayName="Set Violations for bad row" sap:VirtualizedContainerService.HintSize="338,61" sap2010:WorkflowViewState.IdRef="Assign_RowViolations">
+                            <Assign.To>
+                              <OutArgument x:TypeArguments="x:Object">[ClaimRow("Violations")]</OutArgument>
+                            </Assign.To>
+                            <Assign.Value>
+                              <InArgument x:TypeArguments="x:Object">["Invalid data: " + rowException.Message]</InArgument>
+                            </Assign.Value>
+                          </Assign>
+                          <Assign DisplayName="Set Timestamp for bad row" sap:VirtualizedContainerService.HintSize="338,61" sap2010:WorkflowViewState.IdRef="Assign_RowTime">
+                            <Assign.To>
+                              <OutArgument x:TypeArguments="x:Object">[ClaimRow("BotTimestamp")]</OutArgument>
+                            </Assign.To>
+                            <Assign.Value>
+                              <InArgument x:TypeArguments="x:Object">[DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")]</InArgument>
+                            </Assign.Value>
+                          </Assign>
+                        </Sequence>
+                      </ActivityAction>
+                    </Catch>
+                  </TryCatch.Catches>
+                </TryCatch>
+              </ActivityAction>
+            </ui:ForEachRow.Body>
+          </ui:ForEachRow>
+
+          <!-- Retry Scope 2: Write Output Excel Workbook (3 attempts, 2-sec interval) -->
+          <ui:RetryScope DisplayName="Retry Scope - Write Output Excel" sap:VirtualizedContainerService.HintSize="688,300" sap2010:WorkflowViewState.IdRef="RetryScope_2" NumberOfRetries="3" RetryInterval="00:00:02">
+            <ui:RetryScope.ActivityBody>
+              <ActivityAction>
+                <ui:WriteRange AddHeaders="True" DataTable="[dt_Claims]" DisplayName="Write Verified Claims to Output Excel" sap:VirtualizedContainerService.HintSize="334,116" sap2010:WorkflowViewState.IdRef="WriteRange_1" SheetName="Claims" StartingCell="A1" WorkbookPath="[str_OutputFilePath]" />
+              </ActivityAction>
+            </ui:RetryScope.ActivityBody>
+            <ui:RetryScope.Condition>
+              <ActivityFunc x:TypeArguments="x:Boolean" />
+            </ui:RetryScope.Condition>
+          </ui:RetryScope>
+
+          <ui:LogMessage DisplayName="Log Success Finished" sap:VirtualizedContainerService.HintSize="688,92" sap2010:WorkflowViewState.IdRef="LogMessage_3" Level="Info" Message="[&quot;[UiPath Bot] Verification completed successfully. Output written to: &quot; + str_OutputFilePath]" />
+        </Sequence>
+      </TryCatch.Try>
+      
+      <!-- Global Catch Block: Logs full Exception Message & Source, and rethrows cleanly -->
+      <TryCatch.Catches>
+        <Catch x:TypeArguments="s:Exception" sap:VirtualizedContainerService.HintSize="754,21" sap2010:WorkflowViewState.IdRef="Catch`1_1">
+          <sap:WorkflowViewStateService.ViewState>
+            <scg:Dictionary x:TypeArguments="x:String, x:Object">
+              <x:Boolean x:Key="IsExpanded">False</x:Boolean>
+              <x:Boolean x:Key="IsPinned">False</x:Boolean>
+            </scg:Dictionary>
+          </sap:WorkflowViewStateService.ViewState>
+          <ActivityAction x:TypeArguments="s:Exception">
+            <ActivityAction.Argument>
+              <DelegateInArgument x:TypeArguments="s:Exception" Name="exception" />
+            </ActivityAction.Argument>
+            <Sequence DisplayName="Handle Global Exception" sap:VirtualizedContainerService.HintSize="400,200" sap2010:WorkflowViewState.IdRef="Sequence_GlobalCatch">
+              <ui:LogMessage DisplayName="Log Exception Fatal" sap:VirtualizedContainerService.HintSize="338,92" sap2010:WorkflowViewState.IdRef="LogMessage_4" Level="Error" Message="[&quot;[UiPath Bot Fatal Error] Failed during verification: &quot; + exception.Message + &quot; | Source: &quot; + exception.Source]" />
+              <Rethrow DisplayName="Rethrow Fatal Exception" sap:VirtualizedContainerService.HintSize="338,22" sap2010:WorkflowViewState.IdRef="Rethrow_1" />
+            </Sequence>
+          </ActivityAction>
+        </Catch>
+      </TryCatch.Catches>
+      
+      <!-- Finally Block: Always logs total processed rows -->
+      <TryCatch.Finally>
+        <ui:LogMessage DisplayName="Log Bot Finished" sap:VirtualizedContainerService.HintSize="334,92" sap2010:WorkflowViewState.IdRef="LogMessage_Finally" Level="Info" Message="[&quot;[UiPath Bot] Bot finished. Total rows processed: &quot; + If(dt_Claims IsNot Nothing, dt_Claims.Rows.Count.ToString(), &quot;0&quot;)]" />
+      </TryCatch.Finally>
+    </TryCatch>
+  </Sequence>
+</Activity>

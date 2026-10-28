@@ -1,0 +1,6 @@
+{
+  "Name": "ExpenseClaimVerificationBot",
+  "ProjectType": "Process",
+  "Description": "Automated Expense Claim Verification Bot for College Project. Reads claims_input.xlsx, verifies against dynamic policies, and outputs claims_verified.xlsx.",
+  "MainFile": "Main.xaml"
+}
