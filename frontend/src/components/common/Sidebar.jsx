@@ -12,7 +12,8 @@ import {
   FileBarChart2, 
   History, 
   LogOut,
-  Bot
+  Bot,
+  Activity
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -31,6 +32,7 @@ export default function Sidebar() {
     // Admin Only Links
     ...(isAdmin ? [
       { name: 'Verification Engine', path: '/verification-engine', icon: Cpu, badge: 'RPA' },
+      { name: 'Bot Monitoring', path: '/monitoring', icon: Activity, badge: 'Live' },
       { name: 'Review & Approvals', path: '/review-approval', icon: CheckSquare },
       { name: 'Policy Configuration', path: '/policies', icon: Sliders },
       { name: 'Audit History', path: '/audit-logs', icon: History },

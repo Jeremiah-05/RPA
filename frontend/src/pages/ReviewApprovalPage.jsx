@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Navbar from '../components/common/Navbar';
 import StatusBadge from '../components/common/StatusBadge';
 import Modal from '../components/common/Modal';
-import { claimsAPI } from '../services/api';
+import { claimsAPI, aiAPI } from '../services/api';
 import { 
   CheckCircle, 
   XCircle, 
@@ -13,7 +13,9 @@ import {
   Eye, 
   RefreshCw,
   CheckCheck,
-  AlertCircle
+  AlertCircle,
+  Sparkles,
+  ShieldAlert
 } from 'lucide-react';
 
 export default function ReviewApprovalPage() {
@@ -25,6 +27,8 @@ export default function ReviewApprovalPage() {
   const [comments, setComments] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
+  const [aiNote, setAiNote] = useState(null);
+  const [loadingAi, setLoadingAi] = useState(false);
 
   const fetchPendingReviews = async () => {
     try {
@@ -48,8 +52,10 @@ export default function ReviewApprovalPage() {
     fetchPendingReviews();
   }, []);
 
-  const handleOpenReview = (claim) => {
+  const handleOpenReview = async (claim) => {
     setSelectedClaim(claim);
+    setAiNote(null);
+    setLoadingAi(false);
     // If flagged, default to CORRECTION or REJECT; if verified, default to APPROVE
     if (claim.status === 'Flagged') {
       setDecision('CORRECTION');
@@ -59,6 +65,37 @@ export default function ReviewApprovalPage() {
     setComments('');
     setMessage('');
     setIsReviewModalOpen(true);
+
+    // Fetch full claim details to load any cached AI note or risk score
+    try {
+      const res = await claimsAPI.getById(claim.id);
+      if (res.data?.success) {
+        if (res.data.claim) {
+          setSelectedClaim(res.data.claim);
+        }
+        if (res.data.aiNote) {
+          setAiNote(res.data.aiNote);
+        }
+      }
+    } catch (e) {
+      console.warn('Could not load cached claim details:', e);
+    }
+  };
+
+  const handleGenerateAiNote = async () => {
+    if (!selectedClaim) return;
+    setLoadingAi(true);
+    try {
+      const res = await aiAPI.generateClaimSummary(selectedClaim.id);
+      if (res.data?.success && res.data.aiNote) {
+        setAiNote(res.data.aiNote);
+      }
+    } catch (err) {
+      console.error('Failed to generate AI note:', err);
+      alert('Failed to generate AI advisory note: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setLoadingAi(false);
+    }
   };
 
   const handleExecuteReview = async (e) => {
@@ -118,6 +155,7 @@ export default function ReviewApprovalPage() {
                   <th className="py-3.5 px-4">Category</th>
                   <th className="py-3.5 px-4 text-right">Amount (₹)</th>
                   <th className="py-3.5 px-4">Current Status</th>
+                  <th className="py-3.5 px-4 text-center">Risk Score</th>
                   <th className="py-3.5 px-4">Bot Violations</th>
                   <th className="py-3.5 px-4 text-center">Receipt</th>
                   <th className="py-3.5 px-4 text-center">Review Action</th>
@@ -126,11 +164,11 @@ export default function ReviewApprovalPage() {
               <tbody className="divide-y divide-slate-100 text-slate-700">
                 {loading ? (
                   <tr>
-                    <td colSpan="8" className="py-8 text-center text-slate-400">Loading review queue...</td>
+                    <td colSpan="9" className="py-8 text-center text-slate-400">Loading review queue...</td>
                   </tr>
                 ) : claims.length === 0 ? (
                   <tr>
-                    <td colSpan="8" className="py-8 text-center text-slate-400">
+                    <td colSpan="9" className="py-8 text-center text-slate-400">
                       All claims have been approved, rejected, or resolved. Approval queue is empty.
                     </td>
                   </tr>
@@ -148,6 +186,27 @@ export default function ReviewApprovalPage() {
                       </td>
                       <td className="py-3 px-4">
                         <StatusBadge status={claim.status} size="sm" />
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        {claim.risk_score ? (
+                          <span 
+                            title={`Rule-based statistical scoring: ${claim.risk_score.score}/100. Signals: ${claim.risk_score.reasons?.join('; ')}`}
+                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border cursor-help ${
+                              claim.risk_score.level === 'High'
+                                ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                : claim.risk_score.level === 'Moderate'
+                                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            }`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${
+                              claim.risk_score.level === 'High' ? 'bg-rose-500' : claim.risk_score.level === 'Moderate' ? 'bg-amber-500' : 'bg-emerald-500'
+                            }`} />
+                            <span>{claim.risk_score.score}/100</span>
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 text-[10px]">—</span>
+                        )}
                       </td>
                       <td className="py-3 px-4 max-w-xs">
                         {claim.bot_violations ? (
@@ -223,6 +282,97 @@ export default function ReviewApprovalPage() {
                   </div>
                 )}
               </div>
+
+              {/* Risk Assessment Box - Rule-Based Statistical Scoring (Phase 4) */}
+              {selectedClaim.risk_score && (
+                <div className="p-3 bg-white rounded-xl border border-slate-200 space-y-1.5 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                      <ShieldAlert className="w-4 h-4 text-slate-500" />
+                      <span>Risk Assessment (Rule-Based Statistical Scoring):</span>
+                    </span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                      selectedClaim.risk_score.level === 'High'
+                        ? 'bg-rose-50 text-rose-700 border-rose-200'
+                        : selectedClaim.risk_score.level === 'Moderate'
+                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                        : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    }`}>
+                      {selectedClaim.risk_score.score}/100 • {selectedClaim.risk_score.level} Risk
+                    </span>
+                  </div>
+                  <ul className="list-disc list-inside text-[11px] text-slate-600 space-y-0.5 pl-1">
+                    {selectedClaim.risk_score.reasons.map((r, idx) => (
+                      <li key={idx}>{r}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* AI Advisory Suggestion Card - Phase 3 */}
+              {aiNote ? (
+                <div className="p-3.5 bg-gradient-to-br from-indigo-50/80 to-blue-50/50 rounded-xl border-2 border-indigo-200 space-y-2 shadow-2xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 text-indigo-950 font-bold text-xs">
+                      <Sparkles className="w-4 h-4 text-indigo-600 shrink-0" />
+                      <span>AI suggestion - advisory only, the manager decides</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700 font-mono text-[9px] font-bold truncate max-w-[170px]" title={aiNote.model}>
+                      {aiNote.model}
+                    </span>
+                  </div>
+
+                  <p className="text-slate-800 font-medium text-xs leading-relaxed">
+                    {aiNote.payload?.summary}
+                  </p>
+
+                  <div className="flex items-center gap-4 pt-1 text-[11px]">
+                    <div>
+                      <span className="text-slate-500">Risk Level: </span>
+                      <strong className={`font-bold ${
+                        aiNote.payload?.risk_level === 'High' ? 'text-rose-600' :
+                        aiNote.payload?.risk_level === 'Medium' ? 'text-amber-600' : 'text-emerald-600'
+                      }`}>
+                        {aiNote.payload?.risk_level}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">Suggested Action: </span>
+                      <strong className="text-indigo-700 font-bold">
+                        {aiNote.payload?.suggested_action}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <p className="text-slate-600 text-[11px]">
+                    <span className="font-semibold text-slate-700">Reason: </span>
+                    {aiNote.payload?.reason}
+                  </p>
+
+                  <p className="text-[10px] text-indigo-600/80 italic pt-1 border-t border-indigo-100">
+                    Note: AI provides advisory recommendations only. The reviewing manager retains final decision authority.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                  <div>
+                    <p className="font-semibold text-slate-700 text-xs flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+                      <span>AI Advisory Note</span>
+                    </p>
+                    <p className="text-[11px] text-slate-500">Generate on-demand advisory assessment using Groq LLM</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleGenerateAiNote}
+                    disabled={loadingAi}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-xs transition disabled:opacity-50 cursor-pointer"
+                  >
+                    <Sparkles className={`w-3.5 h-3.5 ${loadingAi ? 'animate-spin' : ''}`} />
+                    <span>{loadingAi ? 'Generating...' : 'Generate AI note'}</span>
+                  </button>
+                </div>
+              )}
 
               {/* Decision Radio Selector */}
               <div>

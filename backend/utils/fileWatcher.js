@@ -43,7 +43,7 @@ function initRpaFileWatcher() {
     debounceTimer = setTimeout(async () => {
       try {
         console.log('[RPA File Watcher] Detected new/updated claims_verified.xlsx from UiPath. Processing auto-import...');
-        const summary = await processRpaResultsImport(null);
+        const summary = await processRpaResultsImport(null, 'uipath');
         console.log(`[RPA File Watcher] Auto-import completed successfully! (${summary.processed} claims processed)`);
       } catch (err) {
         console.error('[RPA File Watcher Error] Failed to auto-import bot output:', err.message);

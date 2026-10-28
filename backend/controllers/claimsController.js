@@ -92,10 +92,21 @@ async function getAllClaims(req, res) {
 
     const [claims] = await pool.query(query, params);
 
+    // Compute deterministic rule-based statistical risk score for each claim
+    const { calculateClaimRiskScore } = require('../utils/riskScore');
+    const [policies] = await pool.query('SELECT category, max_limit FROM policies WHERE is_active = TRUE');
+    const policyLimits = {};
+    policies.forEach(p => { policyLimits[p.category] = p.max_limit; });
+
+    const enrichedClaims = claims.map(c => ({
+      ...c,
+      risk_score: calculateClaimRiskScore(c, policyLimits, claims)
+    }));
+
     return res.status(200).json({
       success: true,
-      count: claims.length,
-      claims
+      count: enrichedClaims.length,
+      claims: enrichedClaims
     });
   } catch (error) {
     console.error('[Get Claims Error]:', error);
@@ -158,11 +169,41 @@ async function getClaimById(req, res) {
       ORDER BY a.id ASC
     `, [claimId]);
 
+    // Fetch cached AI summary note if present
+    const [aiNotes] = await pool.query(
+      'SELECT * FROM claim_ai_notes WHERE claim_id = ? ORDER BY id DESC LIMIT 1',
+      [claimId]
+    );
+
+    let parsedAiNote = null;
+    if (aiNotes.length > 0) {
+      let p = aiNotes[0].payload;
+      if (typeof p === 'string') {
+        try { p = JSON.parse(p); } catch (e) {}
+      }
+      parsedAiNote = {
+        id: aiNotes[0].id,
+        claim_id: aiNotes[0].claim_id,
+        model: aiNotes[0].model,
+        payload: p,
+        created_at: aiNotes[0].created_at
+      };
+    }
+
+    // Compute deterministic risk score
+    const { calculateClaimRiskScore } = require('../utils/riskScore');
+    const [allClaimsForContext] = await pool.query('SELECT id, user_id, amount, category, expense_date, claim_code FROM claims');
+    const [policies] = await pool.query('SELECT category, max_limit FROM policies WHERE is_active = TRUE');
+    const policyLimits = {};
+    policies.forEach(p => { policyLimits[p.category] = p.max_limit; });
+    claim.risk_score = calculateClaimRiskScore(claim, policyLimits, allClaimsForContext);
+
     return res.status(200).json({
       success: true,
       claim,
       verificationHistory: verifications,
-      auditHistory: auditLogs
+      auditHistory: auditLogs,
+      aiNote: parsedAiNote
     });
   } catch (error) {
     console.error('[Get Claim By ID Error]:', error);
@@ -681,6 +722,111 @@ async function bulkImportClaims(req, res) {
   }
 }
 
+/**
+ * Generate or retrieve cached AI advisory summary using Groq
+ * POST /api/claims/:id/ai-summary
+ * Admin only. Advisory recommendation for human decision maker.
+ */
+async function getClaimAiSummary(req, res) {
+  try {
+    const claimId = parseInt(req.params.id, 10);
+
+    // 1. Check cache first in claim_ai_notes so repeated clicks never trigger extra API calls
+    const [cachedNotes] = await pool.query(
+      'SELECT * FROM claim_ai_notes WHERE claim_id = ? ORDER BY id DESC LIMIT 1',
+      [claimId]
+    );
+
+    if (cachedNotes.length > 0) {
+      const cached = cachedNotes[0];
+      let payload = cached.payload;
+      if (typeof payload === 'string') {
+        try { payload = JSON.parse(payload); } catch (e) {}
+      }
+      return res.status(200).json({
+        success: true,
+        cached: true,
+        aiNote: {
+          id: cached.id,
+          claim_id: cached.claim_id,
+          model: cached.model,
+          payload,
+          created_at: cached.created_at
+        }
+      });
+    }
+
+    // 2. Fetch claim data with violations and limits
+    const [claimRows] = await pool.query(`
+      SELECT 
+        c.id,
+        c.claim_code,
+        c.category,
+        c.amount,
+        c.expense_date,
+        c.description,
+        vr.violations,
+        vr.policy_limit_applied,
+        p.max_limit AS policy_limit
+      FROM claims c
+      LEFT JOIN (
+        SELECT v1.* FROM verification_results v1
+        INNER JOIN (SELECT claim_id, MAX(id) AS max_id FROM verification_results GROUP BY claim_id) v2
+        ON v1.claim_id = v2.claim_id AND v1.id = v2.max_id
+      ) vr ON c.id = vr.claim_id
+      LEFT JOIN policies p ON c.category = p.category
+      WHERE c.id = ?
+    `, [claimId]);
+
+    if (claimRows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Claim not found.'
+      });
+    }
+
+    const claim = claimRows[0];
+
+    // 3. Generate summary via AI Advisor (strict privacy: no personal info passed)
+    const { generateAiSummary } = require('../services/aiAdvisor');
+    const result = await generateAiSummary({
+      claimCode: claim.claim_code,
+      category: claim.category,
+      amount: claim.amount,
+      expenseDate: claim.expense_date,
+      description: claim.description,
+      violations: claim.violations,
+      policyLimit: claim.policy_limit_applied || claim.policy_limit
+    });
+
+    // 4. Cache in claim_ai_notes
+    const payloadStr = JSON.stringify(result.payload);
+    const [insertResult] = await pool.query(
+      `INSERT INTO claim_ai_notes (claim_id, model, payload) VALUES (?, ?, ?)`,
+      [claimId, result.model, payloadStr]
+    );
+
+    return res.status(200).json({
+      success: true,
+      cached: false,
+      aiNote: {
+        id: insertResult.insertId,
+        claim_id: claimId,
+        model: result.model,
+        payload: result.payload,
+        created_at: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('[AI Summary Error]:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to generate AI advisory summary.',
+      error: error.message
+    });
+  }
+}
+
 module.exports = {
   getAllClaims,
   getClaimById,
@@ -688,5 +834,6 @@ module.exports = {
   updateClaim,
   reviewClaim,
   getDashboardStats,
-  bulkImportClaims
+  bulkImportClaims,
+  getClaimAiSummary
 };

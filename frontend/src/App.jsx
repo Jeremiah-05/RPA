@@ -14,6 +14,7 @@ import ReviewApprovalPage from './pages/ReviewApprovalPage';
 import PolicyConfigPage from './pages/PolicyConfigPage';
 import AuditLogsPage from './pages/AuditLogsPage';
 import ReportsPage from './pages/ReportsPage';
+import BotMonitoringPage from './pages/BotMonitoringPage';
 
 // Authenticated App Shell Layout with Sidebar
 function AppLayout({ children }) {
@@ -74,6 +75,17 @@ export default function App() {
           <ProtectedRoute allowedRoles={['admin']}>
             <AppLayout>
               <VerificationEngine />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/monitoring"
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AppLayout>
+              <BotMonitoringPage />
             </AppLayout>
           </ProtectedRoute>
         }

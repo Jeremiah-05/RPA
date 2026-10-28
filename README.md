@@ -79,7 +79,7 @@ The UiPath RPA bot executes the following 5 validation rules across every claim:
 
 | # | Rule Name | Condition Evaluated | Flagged Violation Message | Outcome |
 |---|---|---|---|---|
-| **1** | **Duplicate Claim Check** | `ClaimCode` has been processed previously in batch or database | `"Duplicate submission"` | `Rejected` |
+| **1** | **Duplicate Claim Check** | `ClaimCode` has been processed previously in current batch | `"Duplicate submission"` | `Rejected` |
 | **2** | **Category Recognition** | `Category` is blank or missing from `Policies` table | `"Incomplete claim"` or `"Category not recognized"` | `Flagged` |
 | **3** | **Budget Limit Enforcement** | `Amount > MaxLimit` for that specific category | `"Exceeds category limit"` | `Flagged` |
 | **4** | **Mandatory Receipt Proof** | `ReceiptRequired == True` AND `ReceiptPath` is empty/missing | `"Receipt missing"` | `Flagged` |

@@ -51,7 +51,7 @@
 - **Point to Live Log Console**: *"Notice the step-by-step stream:
   - Step 1/3: Auto-syncing latest MySQL claims into `claims_input.xlsx`
   - Step 2/3: Executing UiPath Bot Verification (Category limits, receipts, duplicates, dates)
-  - Step 3/3: Ingestion complete! 16 claims evaluated (8 Verified, 7 Flagged, 1 Rejected)."*
+  - Step 3/3: Ingestion complete! 16 claims evaluated (7 Verified, 8 Flagged, 1 Rejected)."*
 
 ---
 
@@ -110,7 +110,7 @@
 
 ### Q4: How does the bot detect duplicate claim submissions?
 **Answer**:
-> *"The bot maintains an in-memory `List(Of String)` named `list_SeenClaimCodes`. For each row in `dt_Claims`, it checks `list_SeenClaimCodes.Contains(ClaimCode)`. If the code has already been seen in the current batch or matches historical processed claims, it flags `Duplicate submission` and immediately marks the outcome as `Rejected`."*
+> *"The bot maintains an in-memory `List(Of String)` named `list_SeenClaimCodes`. For each row in `dt_Claims`, it checks `list_SeenClaimCodes.Contains(ClaimCode)`. If the code has already been seen in the current batch (input contains active 'Submitted' claims), it flags `Duplicate submission` and immediately marks the outcome as `Rejected`. Cross-batch historical database duplicate checking is a noted future enhancement."*
 
 ---
 
@@ -179,7 +179,7 @@
 
 ### Q15: What are the quantified ROI benefits of this automated system over manual processing?
 **Answer**:
-> *"Based on enterprise benchmarks:
-> - **Audit Velocity**: Reduces audit time from 8–12 minutes per claim to under 0.5 seconds per claim (over 95% time savings).
-> - **Fraud Prevention**: Eliminates 100% of duplicate submission fraud through automated hash and claim code matching.
-> - **Compliance Accuracy**: Removes human bias and oversight in budget limit enforcement."*
+> *"Based on measured benchmark comparisons:
+> - **Audit Velocity**: Reduces audit time from an assumed manual baseline of ~8–12 minutes per claim (to be validated by timing 20 manual checks) down to automated verification (~5–10 seconds for 16 claims in UiPath Studio; ~50–100 ms in the Node simulator engine).
+> - **Fraud Prevention**: Eliminates in-batch duplicate submission fraud through deterministic claim code matching.
+> - **Compliance Accuracy**: Removes human fatigue and oversight in strict budget limit and receipt enforcement."*

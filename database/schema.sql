@@ -213,3 +213,38 @@ INSERT INTO audit_log (claim_id, user_id, action, old_status, new_status, commen
 (14, 2, 'SUBMIT', NULL, 'Submitted', 'Initial claim submission by employee', '2026-10-22 16:30:00'),
 (15, 4, 'SUBMIT', NULL, 'Submitted', 'Initial claim submission by employee', '2026-10-24 19:10:00'),
 (16, 2, 'SUBMIT', NULL, 'Submitted', 'Initial claim submission by employee', '2026-10-26 10:15:00');
+
+-- ------------------------------------------------------------------------------
+-- 6. Table: bot_runs
+-- Tracks real-time telemetry of UiPath Studio and companion simulator runs
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS bot_runs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    run_source ENUM('uipath', 'simulator') NOT NULL,
+    started_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    finished_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    duration_ms INT NOT NULL DEFAULT 0,
+    claims_processed INT NOT NULL DEFAULT 0,
+    verified_count INT NOT NULL DEFAULT 0,
+    flagged_count INT NOT NULL DEFAULT 0,
+    rejected_count INT NOT NULL DEFAULT 0,
+    status ENUM('Success', 'Failed') NOT NULL DEFAULT 'Success',
+    error_message TEXT NULL,
+    INDEX idx_bot_runs_source (run_source),
+    INDEX idx_bot_runs_status (status),
+    INDEX idx_bot_runs_started (started_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------------------------------------------
+-- 7. Table: claim_ai_notes
+-- Caches Groq AI advisory summaries (advisory only, human governance)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS claim_ai_notes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    claim_id INT NOT NULL,
+    model VARCHAR(100) NOT NULL,
+    payload JSON NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_ai_notes_claim FOREIGN KEY (claim_id) REFERENCES claims(id) ON DELETE CASCADE,
+    INDEX idx_ai_notes_claim (claim_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

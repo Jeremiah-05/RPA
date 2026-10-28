@@ -108,18 +108,104 @@ async function exportClaimsToBot(req, res) {
 }
 
 /**
+ * Helper to log bot execution telemetry into bot_runs
+ * Wrapped in try/catch to ensure monitoring failure never disrupts ingestion
+ */
+async function recordBotRun({
+  runSource = 'simulator',
+  startedAt,
+  finishedAt,
+  durationMs = 0,
+  claimsProcessed = 0,
+  verifiedCount = 0,
+  flaggedCount = 0,
+  rejectedCount = 0,
+  status = 'Success',
+  errorMessage = null
+}) {
+  try {
+    const startStr = startedAt instanceof Date
+      ? startedAt.toISOString().replace('T', ' ').substring(0, 19)
+      : (startedAt || new Date().toISOString().replace('T', ' ').substring(0, 19));
+    const finishStr = finishedAt instanceof Date
+      ? finishedAt.toISOString().replace('T', ' ').substring(0, 19)
+      : (finishedAt || new Date().toISOString().replace('T', ' ').substring(0, 19));
+
+    await pool.query(
+      `INSERT INTO bot_runs 
+       (run_source, started_at, finished_at, duration_ms, claims_processed, verified_count, flagged_count, rejected_count, status, error_message)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        runSource,
+        startStr,
+        finishStr,
+        Math.max(0, Math.round(durationMs)),
+        claimsProcessed,
+        verifiedCount,
+        flaggedCount,
+        rejectedCount,
+        status,
+        errorMessage
+      ]
+    );
+  } catch (err) {
+    console.error('[Monitoring Telemetry Warning] Failed to log bot run:', err.message);
+  }
+}
+
+/**
  * Core reusable function to import UiPath verification results
  * Can be called by REST endpoint or background file watcher
+ * @param {number|null} actorUserId User initiating the action
+ * @param {'uipath'|'simulator'} runSource Origin of the run
+ * @param {number} durationMs Optional measured execution time
+ * @param {Date|null} customStartTime Optional start timestamp
  */
-async function processRpaResultsImport(actorUserId = null) {
+async function processRpaResultsImport(actorUserId = null, runSource = 'uipath', durationMs = 0, customStartTime = null) {
+  const startedAt = customStartTime || new Date();
+
   if (!fs.existsSync(resolvedOutputFile)) {
-    throw new Error(`UiPath output file does not exist at: ${resolvedOutputFile}`);
+    const err = new Error(`UiPath output file does not exist at: ${resolvedOutputFile}`);
+    await recordBotRun({
+      runSource,
+      startedAt,
+      finishedAt: new Date(),
+      durationMs: durationMs || 0,
+      status: 'Failed',
+      errorMessage: err.message
+    });
+    throw err;
   }
 
   // Parse Excel file
-  const parsedRecords = await parseVerifiedClaimsExcel(resolvedOutputFile);
+  let parsedRecords = [];
+  try {
+    parsedRecords = await parseVerifiedClaimsExcel(resolvedOutputFile);
+  } catch (parseErr) {
+    await recordBotRun({
+      runSource,
+      startedAt,
+      finishedAt: new Date(),
+      durationMs: durationMs || 0,
+      status: 'Failed',
+      errorMessage: `Excel parsing error: ${parseErr.message}`
+    });
+    throw parseErr;
+  }
 
   if (parsedRecords.length === 0) {
+    await recordBotRun({
+      runSource,
+      startedAt,
+      finishedAt: new Date(),
+      durationMs: durationMs || 0,
+      claimsProcessed: 0,
+      verifiedCount: 0,
+      flaggedCount: 0,
+      rejectedCount: 0,
+      status: 'Success',
+      errorMessage: 'Output file contained 0 claim rows'
+    });
     return { processed: 0, verified: 0, flagged: 0, rejected: 0 };
   }
 
@@ -166,7 +252,7 @@ async function processRpaResultsImport(actorUserId = null) {
           record.violations,
           record.checkedAmount || currentClaim.amount,
           record.policyLimitApplied,
-          'Processed automatically via UiPath Studio verification workflow'
+          `Processed automatically via ${runSource === 'simulator' ? 'companion simulator' : 'UiPath Studio'} verification workflow`
         ]
       );
 
@@ -188,14 +274,62 @@ async function processRpaResultsImport(actorUserId = null) {
 
     await connection.commit();
 
+    // Calculate execution duration
+    const finishedAt = new Date();
+    let calculatedDuration = durationMs;
+    if (!calculatedDuration || calculatedDuration <= 0) {
+      try {
+        if (fs.existsSync(resolvedInputFile) && fs.existsSync(resolvedOutputFile)) {
+          const inStat = fs.statSync(resolvedInputFile);
+          const outStat = fs.statSync(resolvedOutputFile);
+          const diff = outStat.mtimeMs - inStat.mtimeMs;
+          if (diff > 0 && diff < 600000) {
+            calculatedDuration = diff;
+          }
+        }
+      } catch (e) {}
+      if (!calculatedDuration || calculatedDuration <= 0) {
+        calculatedDuration = finishedAt.getTime() - startedAt.getTime();
+      }
+    }
+
+    // Telemetry log to bot_runs
+    await recordBotRun({
+      runSource,
+      startedAt,
+      finishedAt,
+      durationMs: calculatedDuration,
+      claimsProcessed: parsedRecords.length,
+      verifiedCount,
+      flaggedCount,
+      rejectedCount,
+      status: 'Success',
+      errorMessage: null
+    });
+
     return {
       processed: parsedRecords.length,
       verified: verifiedCount,
       flagged: flaggedCount,
-      rejected: rejectedCount
+      rejected: rejectedCount,
+      durationMs: calculatedDuration
     };
   } catch (error) {
     await connection.rollback();
+
+    await recordBotRun({
+      runSource,
+      startedAt,
+      finishedAt: new Date(),
+      durationMs: durationMs || (Date.now() - startedAt.getTime()),
+      claimsProcessed: 0,
+      verifiedCount: 0,
+      flaggedCount: 0,
+      rejectedCount: 0,
+      status: 'Failed',
+      errorMessage: error.message
+    });
+
     throw error;
   } finally {
     connection.release();
@@ -308,12 +442,14 @@ async function triggerBotSimulation(req, res) {
     }
 
     // 2. Execute Bot Verification rules (Rules 1-5)
+    const simStartTime = new Date();
     const { runBotSimulation } = require('../../rpa/simulate_bot');
     await runBotSimulation();
+    const simDuration = Date.now() - simStartTime.getTime();
     
     // 3. Auto-import verified results into MySQL
     const actorId = req.user ? req.user.id : null;
-    const importSummary = await processRpaResultsImport(actorId);
+    const importSummary = await processRpaResultsImport(actorId, 'simulator', simDuration, simStartTime);
 
     return res.status(200).json({
       success: true,

@@ -30,4 +30,7 @@ router.put('/:id', upload.single('receipt'), claimsController.updateClaim);
 // Admin review: Approve, Reject, or Request Correction
 router.patch('/:id/review', requireAdmin, claimsController.reviewClaim);
 
+// Admin AI Advisory Note generation (cached)
+router.post('/:id/ai-summary', requireAdmin, claimsController.getClaimAiSummary);
+
 module.exports = router;

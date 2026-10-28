@@ -97,6 +97,29 @@ function initSqliteDatabase() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (claim_id) REFERENCES claims(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS bot_runs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      run_source TEXT NOT NULL,
+      started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      finished_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      duration_ms INTEGER NOT NULL DEFAULT 0,
+      claims_processed INTEGER NOT NULL DEFAULT 0,
+      verified_count INTEGER NOT NULL DEFAULT 0,
+      flagged_count INTEGER NOT NULL DEFAULT 0,
+      rejected_count INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'Success',
+      error_message TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS claim_ai_notes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      claim_id INTEGER NOT NULL,
+      model TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (claim_id) REFERENCES claims(id) ON DELETE CASCADE
+    );
   `);
 
   // Seed sample data if database is fresh

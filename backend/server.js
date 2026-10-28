@@ -17,6 +17,7 @@ const policyRoutes = require('./routes/policyRoutes');
 const rpaRoutes = require('./routes/rpaRoutes');
 const auditRoutes = require('./routes/auditRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const monitoringRoutes = require('./routes/monitoringRoutes');
 
 // Import RPA Output File Watcher
 const { initRpaFileWatcher } = require('./utils/fileWatcher');
@@ -55,6 +56,7 @@ app.use('/api/policies', policyRoutes);
 app.use('/api/rpa', rpaRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/monitoring', monitoringRoutes);
 
 // Global 404 Route Handler
 app.use((req, res) => {

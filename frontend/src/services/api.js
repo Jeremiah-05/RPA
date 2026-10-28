@@ -86,4 +86,13 @@ export const reportAPI = {
   downloadExcelReport: () => api.get('/reports/export', { responseType: 'blob' })
 };
 
+export const monitoringAPI = {
+  getSummary: () => api.get('/monitoring/summary'),
+  getRuns: (params) => api.get('/monitoring/runs', { params })
+};
+
+export const aiAPI = {
+  generateClaimSummary: (claimId) => api.post(`/claims/${claimId}/ai-summary`)
+};
+
 export default api;
