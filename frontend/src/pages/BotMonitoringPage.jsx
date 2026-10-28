@@ -27,15 +27,17 @@ export default function BotMonitoringPage() {
 
   const isMountedRef = useRef(true);
 
-  const fetchMonitoringData = async (isManual = false, filter = statusFilter) => {
+  const displayedRuns = runs.filter((run) => {
+    if (statusFilter === 'ALL') return true;
+    return run.status === statusFilter;
+  });
+
+  const fetchMonitoringData = async (isManual = false) => {
     if (isManual) setIsRefreshing(true);
     try {
       const [sumRes, runsRes] = await Promise.all([
         monitoringAPI.getSummary(),
-        monitoringAPI.getRuns({
-          limit: 100,
-          status: filter === 'ALL' ? undefined : filter
-        })
+        monitoringAPI.getRuns({ limit: 100 })
       ]);
 
       if (isMountedRef.current) {
@@ -59,7 +61,6 @@ export default function BotMonitoringPage() {
 
   const handleFilterChange = (newFilter) => {
     setStatusFilter(newFilter);
-    fetchMonitoringData(true, newFilter);
   };
 
   useEffect(() => {
@@ -335,14 +336,14 @@ export default function BotMonitoringPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {runs.length === 0 ? (
+                {displayedRuns.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="py-8 text-center text-slate-400">
                       No {statusFilter !== 'ALL' ? statusFilter.toLowerCase() : ''} bot runs recorded.
                     </td>
                   </tr>
                 ) : (
-                  runs.map((run) => (
+                  displayedRuns.map((run) => (
                     <tr key={run.id} className={`hover:bg-slate-50/80 transition ${run.status === 'Failed' ? 'bg-rose-50/30' : ''}`}>
                       <td className="py-3.5 px-4 font-mono font-bold text-slate-800">
                         #{run.id}
