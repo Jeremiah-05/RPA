@@ -43,11 +43,11 @@
 
 ### Minute 4:00 - 5:30 | Verification Engine & Bot Execution
 - **Navigate to**: `Verification Engine` page (`http://localhost:5173/verification-engine`).
-- **Talking Point**: *"This is the RPA mission control. It visualizes the end-to-end pipeline: MySQL Database -> Input Excel -> UiPath Bot -> Output Excel -> Ingestion."*
+- **Talking Point**: *"This is the RPA mission control. It visualizes the end-to-end pipeline: MySQL Database -> Input Excel -> UiPath Bot -> Output Excel -> Ingestion. Notice the **Live Auto-Sync** badge: the page automatically polls in the background every 3 seconds, so whenever UiPath completes, the UI updates dynamically with zero manual refresh clicks."*
 - **Showcase Dual Execution Options**:
-  1. **Method 1 (UiPath Studio)**: *"In UiPath Studio, pressing <kbd>Ctrl</kbd>+<kbd>F5</kbd> reads `claims_input.xlsx`, dynamically caches the `Policies` sheet into a memory dictionary (`Dictionary(Of String, Double)`), checks the 5 rules, and writes `claims_verified.xlsx`."*
-  2. **Method 2 (1-Click Web Verification)**: *"For automated deployment, clicking **'Run Bot (1-Click)'** triggers our integrated verification engine: it auto-syncs newest MySQL rows, executes the rules, and ingests the results in real-time."*
-- **Demo Action**: Click **Run Bot (1-Click)**.
+  1. **Method 1 (UiPath Studio)**: *"In UiPath Studio, pressing <kbd>Ctrl</kbd>+<kbd>F5</kbd> on `Main.xaml` reads `claims_input.xlsx`, dynamically caches the `Policies` sheet into memory dictionaries, checks the 5 rules, and writes `claims_verified.xlsx`."*
+  2. **Method 2 (1-Click Web Verification)**: *"For standalone demonstrations, clicking **'Run Bot (1-Click)'** triggers our integrated companion simulator: it auto-syncs newest MySQL rows, executes the identical 5 verification rules, logs telemetry, and ingests the results in real time."*
+- **Demo Action**: Run the bot in UiPath Studio or click **Run Bot (1-Click)**.
 - **Point to Live Log Console**: *"Notice the step-by-step stream:
   - Step 1/3: Auto-syncing latest MySQL claims into `claims_input.xlsx`
   - Step 2/3: Executing UiPath Bot Verification (Category limits, receipts, duplicates, dates)
@@ -55,25 +55,22 @@
 
 ---
 
-### Minute 5:30 - 6:30 | Chokidar Zero-Touch Ingestion Bridge
-- **Talking Point**: *"Our Node.js backend runs a `chokidar` file watcher. The moment UiPath finishes writing `claims_verified.xlsx`, Chokidar detects the file with a 2-second stability threshold, uses SheetJS to parse the ClosedXML data, starts an atomic MySQL transaction, updates claim statuses, inserts verification records, and creates audit log entries."*
-- **Navigate to**: `Claims Management` table.
-- **Showcase Rule Outcomes**:
-  - `CLM-2026-001` (Meals ₹750): **Verified - Pending Approval** (Within ₹1,000 limit).
-  - `CLM-2026-002` (Meals ₹2,400): **Flagged** (`Exceeds category limit`).
-  - `CLM-2026-003` (Travel ₹3,200): **Flagged** (`Receipt missing`).
-  - `CLM-2026-004` (Future date): **Flagged** (`Invalid date`).
-  - `CLM-2026-006` (Duplicate): **Rejected** (`Duplicate submission`).
+### Minute 5:30 - 6:30 | Real-Time Bot Monitoring & Execution Telemetry
+- **Navigate to**: `Bot Monitoring` page (`http://localhost:5173/monitoring`).
+- **Talking Point**: *"This is our enterprise RPA telemetry center. Every execution from UiPath Studio or the companion simulator is recorded into the `bot_runs` table:
+  - **KPI Cards**: Total executions, success rate %, average duration in milliseconds, and pending queue size.
+  - **Live 3s Polling**: Updates automatically as runs complete.
+  - **Execution History Table**: Displays exact start/finish timestamps, run source (`UiPath Studio` vs `Simulator`), breakdown counts (Verified / Flagged / Rejected), and execution duration.
+  - **Filter Tabs**: We can filter instantly by **All**, **Successful**, or **Failed** runs. If any file-lock exception occurs (such as a temporary Windows `EBUSY` event during Excel saving), the system traps it gracefully in Try-Catch and displays the exact error diagnostics on screen without crashing."*
 
 ---
 
-### Minute 6:30 - 7:30 | Human-in-the-Loop Governance & Approvals
-- **Navigate to**: `Review & Approvals` page.
-- **Talking Point**: *"RPA automates rule verification, but corporate fiduciary responsibility requires managerial oversight. On this page, managers inspect flagged claims, preview uploaded receipts directly in a modal, and make decisions:
-  - **Approve**: Overrides minor policy variances.
-  - **Reject**: Permanently rejects non-compliant claims.
-  - **Request Correction**: Resets the claim to `Needs Correction` so the employee can upload the missing receipt or adjust details and re-submit."*
-- **Demo Action**: Review a flagged claim, enter managerial comments, and approve it. Show the status update in real-time.
+### Minute 6:30 - 7:30 | Human-in-the-Loop Governance, Risk Scoring & AI Advisory
+- **Navigate to**: `Review & Approvals` page (`http://localhost:5173/approvals`).
+- **Talking Point**: *"RPA automates rule verification, but fiduciary corporate governance requires human-in-the-loop sign-off. That is why clean claims are set to **'Verified - Pending Approval'** rather than directly disbursed:
+  - **Deterministic Statistical Risk Scoring**: Every claim is assigned a 0–100 risk score across 6 weighted behavioral signals (amount-to-limit ratio, violation severity count, 7-day submission velocity, weekend anomaly, round-figure patterns, and duplicate flags). Notice the color-coded badges: Low, Medium, High, and Critical.
+  - **Privacy-Preserving AI Advisory (Groq)**: Clicking the **'AI Note'** button invokes an on-demand summary powered by Groq's `openai/gpt-oss-120b`. We enforce strict privacy protection: zero employee names, emails, user IDs, or receipt images are transmitted externally—only anonymous claim parameters. Summaries are cached in MySQL `claim_ai_notes` to eliminate redundant API calls."*
+- **Demo Action**: Click on `CLM-2026-002` (High Risk 70), show the AI summary note and recommendation, and click **Approve** on `CLM-2026-001` (Low Risk 10) to move it to **Approved (Ready for Payout)**.
 
 ---
 
@@ -81,11 +78,11 @@
 - **Talking Point**: *"For high-volume enterprise onboarding, our system features **Bulk Spreadsheet Import**, allowing finance admins to upload batch `.xlsx` or `.csv` files that immediately sync to the RPA engine."*
 - **Navigate to**: `Audit History` and `Reports & Export` pages.
 - **Demo Action**: Click **Download Excel Report**.
-- **Conclusion**: *"Every single action—submission, bot audit, managerial override—is permanently tracked in the immutable `audit_log` table. Clicking download generates an executive 3-sheet Excel report containing Verified Claims, Flagged Exceptions, and the complete Audit Trail. Thank you, and we welcome your questions."*
+- **Conclusion**: *"Every single action—submission, bot audit, risk scoring, managerial override—is permanently tracked in the immutable `audit_log` table. Clicking download generates an executive 3-sheet Excel report containing Verified Claims, Flagged Exceptions, and the complete Audit Trail. Thank you, and we welcome your questions."*
 
 ---
 
-## ❓ Part 2: Top 15 Technical Examiner Questions & Answers
+## ❓ Part 2: Top 20 Technical Examiner Questions & Answers
 
 ### Q1: Why did you decouple the system using Excel workbooks rather than having UiPath query MySQL directly?
 **Answer**:
@@ -183,3 +180,33 @@
 > - **Audit Velocity**: Reduces audit time from an assumed manual baseline of ~8–12 minutes per claim (to be validated by timing 20 manual checks) down to automated verification (~5–10 seconds for 16 claims in UiPath Studio; ~50–100 ms in the Node simulator engine).
 > - **Fraud Prevention**: Eliminates in-batch duplicate submission fraud through deterministic claim code matching.
 > - **Compliance Accuracy**: Removes human fatigue and oversight in strict budget limit and receipt enforcement."*
+
+---
+
+### Q16: Is your Risk Score using Machine Learning?
+**Answer**:
+> *"No, sir/ma'am. It is a deterministic rule-based statistical scoring engine (0–100) combining 6 weighted behavioral signals (amount-to-limit ratio, violation severity count, 7-day velocity anomaly, weekend submission, round-figure patterns, and duplicate flags). Calling it machine learning would be inaccurate because it uses explicit mathematical heuristics without probabilistic model training, guaranteeing 100% audit explainability."*
+
+---
+
+### Q17: Why does the system have a 'Run Bot (1-Click)' button if you built a UiPath bot?
+**Answer**:
+> *"The UiPath workflow is our primary enterprise production bot. The 1-Click button runs a Node.js companion simulator that mirrors the exact same 5 business rules. It was implemented to provide self-contained web demonstration capability and for our automated CI test suite without requiring a licensed Studio runner on every client machine. Demonstrating the real UiPath Studio run first highlights our system's true RPA depth."*
+
+---
+
+### Q18: What happens if Groq AI is down or there is no internet during the presentation?
+**Answer**:
+> *"The AI Advisor service has an automatic three-tier resilience strategy: it tries the primary model (`openai/gpt-oss-120b`), falls back to `llama-3.1-8b-instant`, and if offline, immediately uses a built-in deterministic rule-based summary template. The web user interface never errors, hangs, or crashes."*
+
+---
+
+### Q19: How do you protect employee privacy when sending claims to an external LLM?
+**Answer**:
+> *"We enforce strict PII sanitization in `aiAdvisor.js`: employee names, user IDs, email addresses, and receipt image paths are completely stripped before constructing the prompt. Only the anonymous claim code, category, amount, date, description, bot violation list, and policy limit are transmitted. Furthermore, generated summaries are cached in MySQL `claim_ai_notes` to eliminate redundant API calls."*
+
+---
+
+### Q20: Why are clean claims marked 'Verified - Pending Approval' instead of 'Approved' directly by the bot?
+**Answer**:
+> *"In enterprise accounting and compliance (such as Sarbanes-Oxley / SOX Act and ISO 27001), automated software robots are never legally permitted to disburse corporate capital without human managerial authorization. Our architecture enforces **Human-in-the-Loop (HITL)** governance: the UiPath bot audits and flags policy variances, setting clean claims to 'Verified - Pending Approval' (Pending Admin). The human finance manager retains final statutory sign-off authority to click 'Approve' and release payment."*

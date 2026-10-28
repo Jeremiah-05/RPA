@@ -178,3 +178,18 @@ node rpa/simulate_bot.js
 3. **ClosedXML Worksheet Namespace Bug**:
    - *Cause*: UiPath ClosedXML output produced `<x:worksheet>` namespace prefixes that crashed ExcelJS.
    - *Resolution*: Replaced ExcelJS reader in `excelParser.js` with SheetJS (`xlsx`), which parses all OpenXML variants seamlessly.
+4. **`ReadRange.Range` Missing `<InArgument>` Wrapper**:
+   - *Cause*: `Range` property had `<Literal x:TypeArguments="x:String" Value="" />` declared directly inside `<ui:ReadRange.Range>` without Windows Workflow Foundation's mandatory `<InArgument>` wrapper. Studio reported compile error: `Set property 'UiPath.Excel.Activities.ReadRange.Range' threw an exception. Object of type Literal cannot be converted to InArgument`.
+   - *Resolution*: Wrapped the literal inside `<InArgument x:TypeArguments="x:String"><Literal x:TypeArguments="x:String" Value="" /></InArgument>`, restoring clean Studio builds.
+5. **Windows File Lock (`EBUSY`) on Excel Output Write**:
+   - *Cause*: The Chokidar file watcher detected the initial file creation event while Excel was still flushing its write handle, causing a momentary `EBUSY: resource busy or locked` exception.
+   - *Resolution*: Configured `awaitWriteFinish: { stabilityThreshold: 2000, pollInterval: 200 }` in `fileWatcher.js`, wrapped parsing in a retry scope, and safely logged failed attempts into `bot_runs` telemetry without crashing the server.
+
+---
+
+## 📊 Telemetry & Bot Monitoring Integration
+
+Whenever the UiPath bot executes:
+- **Chokidar File Watcher** detects `claims_verified.xlsx` upon completion.
+- **`bot_runs` Table**: Logs `run_source = 'uipath'`, measured duration in milliseconds, counts (`processed`, `verified`, `flagged`, `rejected`), status (`Success` or `Failed`), and exact error diagnostics.
+- **Bot Monitoring UI (`/monitoring`)**: Automatically auto-refreshes every 3 seconds to surface the newest UiPath execution metrics to finance executives.

@@ -232,16 +232,20 @@ A critical architectural decision was selecting the core RPA automation engine. 
 
 ## 7. Database Schema & Data Models
 
-The relational schema (`expense_rpa_db`) consists of 5 normalized tables:
+The relational schema (`expense_rpa_db`) consists of 7 normalized tables:
 
-### 5.1 Tables Summary
+### 7.1 Tables Architecture
 
 ```text
 users ───< claims ───< verification_results
              │
              ├───< audit_log
              │
+             ├───< claim_ai_notes (Groq AI advisory cache)
+             │
 policies (Category rules)
+
+bot_runs (RPA execution telemetry & monitoring)
 ```
 
 1. **`users`**: Stores user authentication credentials, role scopes (`admin` vs `employee`), department names, and profile metadata.
@@ -255,6 +259,8 @@ policies (Category rules)
    - `Needs Correction`
 4. **`verification_results`**: Historical record of every bot verification execution, recording bot timestamps, identified violations, applied category limits, and execution notes.
 5. **`audit_log`**: Tamper-proof event log tracking state transitions (`SUBMIT`, `RPA_VERIFY`, `APPROVE`, `REJECT`, `RESUBMIT`, `SYSTEM_RESET`) with actor user IDs and comments.
+6. **`bot_runs`**: Telemetry log tracking every RPA execution (`run_source` ENUM `'uipath'/'simulator'`, `started_at`, `finished_at`, `duration_ms`, `claims_processed`, `verified_count`, `flagged_count`, `rejected_count`, `status` ENUM `'Success'/'Failed'`, and `error_message`).
+7. **`claim_ai_notes`**: Cache table storing on-demand Groq LLM advisory notes (`claim_id`, `model_used`, `summary_text`, `action_recommendation`, `created_at`) preventing redundant external API calls.
 
 ---
 
@@ -372,24 +378,50 @@ To prevent isolated single-month dots, the backend `getDashboardStats` controlle
 
 ---
 
-## 12. Human-in-the-Loop Governance & Audit Trail
+## 12. Human-in-the-Loop Governance, Risk Scoring & Monitoring
 
-### 10.1 Managerial Governance Workflow
-While RPA handles automated rule enforcement, final financial approval rests with human managers. In the **Review & Approvals** portal:
-- Managers filter claims by bot outcomes (`Flagged`, `Verified`, `Submitted`).
-- An integrated receipt viewer opens uploaded PDFs and images directly inside a high-resolution modal.
-- Managers choose:
-  - **`Approve`**: Accepts claim and queues for payroll payout.
-  - **`Reject`**: Permanently rejects fraudulent or unauthorized claims.
-  - **`Request Correction`**: Sets status to `Needs Correction`, unlocking the claim in the employee portal so they can upload missing receipts or correct descriptions without starting over.
+### 12.1 Managerial Governance Workflow (Human-in-the-Loop Architecture)
+While RPA automates rule enforcement and fraud auditing, corporate fiduciary compliance (SOX compliance, statutory financial governance) strictly mandates that automated robots **never directly disburse corporate capital without human authorization**.
+- When the UiPath bot processes clean claims with zero violations, it sets their status to **`Verified - Pending Approval`** (displayed as **"Pending Admin"** on the dashboard).
+- In the **Review & Approvals** portal, finance managers review the bot's findings, inspect receipts in-modal, and make the final determination:
+  - **`Approve`**: Commits the payout status to **`Approved`** (Ready for Payout).
+  - **`Reject`**: Permanently declines unauthorized or non-compliant claims.
+  - **`Request Correction`**: Sets status to **`Needs Correction`**, allowing the employee to re-upload missing receipts or adjust details without creating a new claim.
 
-### 10.2 Tamper-Proof Audit Logging
+### 12.2 Deterministic Rule-Based Statistical Risk Scoring Engine
+To triage claims for manager review, the backend incorporates a deterministic 0–100 statistical risk scorer (`riskScore.js`). The engine evaluates 6 weighted behavioral signals without machine learning heuristics:
+1. **Amount-to-Policy Limit Ratio (0–35 points)**: Evaluates claim magnitude relative to category ceiling (e.g., claims > 150% of cap receive maximum weighting).
+2. **Violation Severity Count (0–25 points)**: Accumulates 10 points per bot violation up to a 25-point threshold.
+3. **7-Day Velocity Anomaly (0–15 points)**: Flags employees submitting more than 3 claims within a rolling 7-day window.
+4. **Weekend Expense Anomaly (0–10 points)**: Identifies expenses incurred on Saturday or Sunday for non-travel categories.
+5. **Round-Figure Pattern (0–5 points)**: Flags suspicious round-number amounts (e.g. ₹5,000, ₹10,000) lacking decimal receipt granularity.
+6. **Duplicate Flag Penalty (0–20 points)**: Applies immediate penalty for repeated submission codes.
+
+Risk scores are categorized into color-coded tiers:
+- **Low (0–29)**: Standard expedited review (Green badge).
+- **Medium (30–59)**: Standard managerial audit (Amber badge).
+- **High (60–79)**: Priority inspection recommended (Orange badge).
+- **Critical (80–100)**: Mandatory comprehensive audit (Rose badge).
+
+### 12.3 AI Advisory Layer (Groq LLM Integration & Zero-PII Sanitization)
+To accelerate decision-making for complex claims, finance managers can invoke an on-demand AI Advisory summary:
+- **Model Architecture**: Connects via an OpenAI-compatible interface to **Groq Cloud** using `openai/gpt-oss-120b` (with automatic fallback to `llama-3.1-8b-instant`).
+- **Zero-PII Privacy Protection**: The service strictly sanitizes all payloads prior to transmission. Employee names, email addresses, user IDs, and receipt file paths are completely stripped. Only anonymous claim codes, categories, amounts, dates, descriptions, bot violation lists, and policy limits are transmitted.
+- **Database Caching**: Summaries and recommendations are cached in the `claim_ai_notes` table, ensuring zero redundant API calls upon subsequent viewings.
+- **Offline Resilience**: If the internet or external API is unreachable, a built-in deterministic rule-based template generates structured advice locally without UI disruptions.
+
+### 12.4 Real-Time Bot Monitoring & Execution Telemetry (`/monitoring`)
+To provide visibility into RPA worker performance, every execution via UiPath Studio or the companion simulator logs telemetry into `bot_runs`:
+- **Metrics Tracked**: Start time, finish time, measured execution duration (`duration_ms`), total claims evaluated, counts of verified, flagged, and rejected claims, execution source (`uipath` vs `simulator`), and status (`Success` vs `Failed`).
+- **Telemetry UI**: Features 3-second live auto-refresh polling, KPI cards (Total Runs, Success Rate %, Average Duration, Pending Queue), stale-run alert banners, instant filter tabs (`All`, `Successful`, `Failed`), and error callouts displaying exact exception diagnostics (e.g., Windows `EBUSY` file-lock events).
+
+### 12.5 Tamper-Proof Audit Logging
 Every lifecycle event is recorded in `audit_log`:
 ```sql
 INSERT INTO audit_log (claim_id, user_id, action, old_status, new_status, comments)
 VALUES (?, ?, 'RPA_VERIFY', 'Submitted', 'Flagged', 'Bot detected violations: Exceeds category limit');
 ```
-This historical log cannot be edited or deleted through the web application, guaranteeing audit readiness.
+This historical log cannot be edited or deleted through the web application, guaranteeing statutory audit readiness.
 
 ---
 
