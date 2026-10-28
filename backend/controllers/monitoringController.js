@@ -104,16 +104,26 @@ async function getMonitoringSummary(req, res) {
 }
 
 /**
- * GET /api/monitoring/runs?limit=20
- * Returns recent bot run executions
+ * GET /api/monitoring/runs?limit=50&status=Failed
+ * Returns recent bot run executions with optional status filtering
  */
 async function getMonitoringRuns(req, res) {
   try {
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit || '20', 10)));
-    const [runs] = await pool.query(
-      `SELECT * FROM bot_runs ORDER BY id DESC LIMIT ?`,
-      [limit]
-    );
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit || '50', 10)));
+    const statusFilter = req.query.status;
+
+    let query = 'SELECT * FROM bot_runs';
+    const params = [];
+
+    if (statusFilter && ['Success', 'Failed'].includes(statusFilter)) {
+      query += ' WHERE status = ?';
+      params.push(statusFilter);
+    }
+
+    query += ' ORDER BY id DESC LIMIT ?';
+    params.push(limit);
+
+    const [runs] = await pool.query(query, params);
 
     return res.status(200).json({
       success: true,

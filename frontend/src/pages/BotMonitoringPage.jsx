@@ -23,15 +23,19 @@ export default function BotMonitoringPage() {
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'Success' | 'Failed'
 
   const isMountedRef = useRef(true);
 
-  const fetchMonitoringData = async (isManual = false) => {
+  const fetchMonitoringData = async (isManual = false, filter = statusFilter) => {
     if (isManual) setIsRefreshing(true);
     try {
       const [sumRes, runsRes] = await Promise.all([
         monitoringAPI.getSummary(),
-        monitoringAPI.getRuns({ limit: 20 })
+        monitoringAPI.getRuns({
+          limit: 100,
+          status: filter === 'ALL' ? undefined : filter
+        })
       ]);
 
       if (isMountedRef.current) {
@@ -51,6 +55,11 @@ export default function BotMonitoringPage() {
         if (isManual) setIsRefreshing(false);
       }
     }
+  };
+
+  const handleFilterChange = (newFilter) => {
+    setStatusFilter(newFilter);
+    fetchMonitoringData(true, newFilter);
   };
 
   useEffect(() => {
@@ -146,7 +155,13 @@ export default function BotMonitoringPage() {
               <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
               <span>{summary?.success_runs || 0} successful</span>
               {summary?.failed_runs > 0 && (
-                <span className="text-rose-600 font-medium">({summary.failed_runs} failed)</span>
+                <button
+                  onClick={() => handleFilterChange('Failed')}
+                  className="text-rose-600 font-semibold underline hover:text-rose-800 transition cursor-pointer"
+                  title="Click to view failed executions"
+                >
+                  ({summary.failed_runs} failed)
+                </button>
               )}
             </p>
           </div>
@@ -262,15 +277,46 @@ export default function BotMonitoringPage() {
         )}
 
         {/* Run History Table */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-          <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+        <div id="execution-history" className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+          <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h3 className="font-bold text-slate-900 text-base">Execution History</h3>
-              <p className="text-xs text-slate-500">Telemetry logs from UiPath Studio and companion simulator runs (Last 20)</p>
+              <p className="text-xs text-slate-500">Telemetry logs from UiPath Studio and companion simulator runs</p>
             </div>
-            <span className="text-xs font-semibold text-slate-400">
-              {runs.length} runs logged
-            </span>
+            
+            {/* Filter Tabs */}
+            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+              <button
+                onClick={() => handleFilterChange('ALL')}
+                className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
+                  statusFilter === 'ALL'
+                    ? 'bg-white text-slate-800 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                All ({summary?.total_runs || 0})
+              </button>
+              <button
+                onClick={() => handleFilterChange('Success')}
+                className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
+                  statusFilter === 'Success'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-emerald-700'
+                }`}
+              >
+                Successful ({summary?.success_runs || 0})
+              </button>
+              <button
+                onClick={() => handleFilterChange('Failed')}
+                className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
+                  statusFilter === 'Failed'
+                    ? 'bg-rose-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-rose-700'
+                }`}
+              >
+                Failed ({summary?.failed_runs || 0})
+              </button>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -292,12 +338,12 @@ export default function BotMonitoringPage() {
                 {runs.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="py-8 text-center text-slate-400">
-                      No bot runs recorded yet. Run the bot from the Verification Engine or UiPath Studio to generate telemetry.
+                      No {statusFilter !== 'ALL' ? statusFilter.toLowerCase() : ''} bot runs recorded.
                     </td>
                   </tr>
                 ) : (
                   runs.map((run) => (
-                    <tr key={run.id} className="hover:bg-slate-50/80 transition">
+                    <tr key={run.id} className={`hover:bg-slate-50/80 transition ${run.status === 'Failed' ? 'bg-rose-50/30' : ''}`}>
                       <td className="py-3.5 px-4 font-mono font-bold text-slate-800">
                         #{run.id}
                       </td>
@@ -342,6 +388,12 @@ export default function BotMonitoringPage() {
                           )}
                           <span>{run.status}</span>
                         </span>
+                        {run.error_message && (
+                          <div className="mt-1.5 text-[10px] font-mono text-rose-700 bg-rose-50 border border-rose-200 rounded p-1.5 max-w-xs break-words" title={run.error_message}>
+                            <span className="font-bold block text-rose-800">Error:</span>
+                            {run.error_message}
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))
