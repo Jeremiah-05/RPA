@@ -1,5 +1,5 @@
 # Empirical Test Verification Evidence & Matrix Results
-**Test Execution Timestamp**: `2026-10-28 19:57:55`  
+**Test Execution Timestamp**: `2026-10-28 20:20:22`  
 **Overall Benchmark Matrix Pass Rate**: **100.0%** (16/16 Passed)  
 **Execution Environment**: Node.js Companion Simulator mirroring UiPath Studio `Main.xaml` rules  
 
@@ -41,7 +41,7 @@
 | **Non-numeric amount ("ONE_HUNDRED")** | Handled gracefully by per-row Try-Catch: Outcome="Flagged", Violations="Invalid data: Corrupt amount format: "ONE_HUNDRED" is not a valid number" | ✅ Gracefully Handled | None (No code changes needed) |
 | **Unparseable date ("invalid-date-string-99-99")** | Rule 5 triggered: Outcome="Flagged", Violations="Category not recognized; Invalid date" | ✅ Gracefully Handled | None (No code changes needed) |
 | **Lowercase / padded category (" meals ")** | Trims whitespace but case-sensitive lookup fails policyLimits["meals"]: Outcome="Flagged", Violations="Category not recognized" | ℹ️ Case Observed | Category matching is case-sensitive ("meals" does not match "Meals"). Proposed fix: Convert category lookup keys to lowercase in policyLimits dictionary. |
-| **Negative amount (₹-150.00)** | Outcome="Flagged", Violations="Category not recognized" | ℹ️ Case Observed | None (No code changes needed) |
+| **Negative amount (₹-150.00)** | Outcome="Flagged", Violations="Invalid amount; Category not recognized" | ℹ️ Case Observed | None (No code changes needed) |
 | **Empty claims sheet (0 data rows)** | Processed cleanly: writes output workbook with headers only (actualRowCount = 1). No batch crash. | ✅ Gracefully Handled | None (No code changes needed) |
 
 ---

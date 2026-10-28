@@ -140,6 +140,11 @@ async function runBotSimulation() {
         const violations = [];
         let isDuplicate = false;
 
+        // Check for non-positive amount
+        if (amount <= 0) {
+          violations.push('Invalid amount');
+        }
+
         // Rule 1: Duplicate check (In-batch)
         if (seenClaimCodes.has(claimCode)) {
           violations.push('Duplicate submission');

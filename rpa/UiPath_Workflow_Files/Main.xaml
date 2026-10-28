@@ -203,6 +203,13 @@
                         </Assign.Value>
                       </Assign>
                       
+                      <!-- Non-Positive Amount Validation Check -->
+                      <If Condition="[dbl_Amount &lt;= 0]" DisplayName="If Amount Non-Positive" sap:VirtualizedContainerService.HintSize="554,210" sap2010:WorkflowViewState.IdRef="If_AmountCheck">
+                        <If.Then>
+                          <AddToCollection x:TypeArguments="x:String" Collection="[list_Violations]" DisplayName="Add Invalid amount" sap:VirtualizedContainerService.HintSize="200,22" sap2010:WorkflowViewState.IdRef="AddToCollection_Amount" Item="Invalid amount" />
+                        </If.Then>
+                      </If>
+                      
                       <Assign DisplayName="Extract ExpenseDate" sap:VirtualizedContainerService.HintSize="554,61" sap2010:WorkflowViewState.IdRef="Assign_6">
                         <Assign.To>
                           <OutArgument x:TypeArguments="x:String">[str_ExpenseDate]</OutArgument>
@@ -284,17 +291,10 @@
                       </If>
                       
                       <!-- Rule 5: Expense Date Validation -->
-                      <If Condition="[DateTime.TryParse(str_ExpenseDate, dt_ParsedExpenseDate)]" DisplayName="If Date Parseable" sap:VirtualizedContainerService.HintSize="554,210" sap2010:WorkflowViewState.IdRef="If_7">
+                      <If Condition="[If(DateTime.TryParse(str_ExpenseDate, Nothing), DateTime.Parse(str_ExpenseDate).Date &gt; DateTime.Today, True)]" DisplayName="If Date Invalid or Future" sap:VirtualizedContainerService.HintSize="554,210" sap2010:WorkflowViewState.IdRef="If_7">
                         <If.Then>
-                          <If Condition="[dt_ParsedExpenseDate.Date &gt; DateTime.Today]" DisplayName="If Date in Future" sap:VirtualizedContainerService.HintSize="200,22" sap2010:WorkflowViewState.IdRef="If_8">
-                            <If.Then>
-                              <AddToCollection x:TypeArguments="x:String" Collection="[list_Violations]" DisplayName="Add Invalid date" sap:VirtualizedContainerService.HintSize="200,22" sap2010:WorkflowViewState.IdRef="AddToCollection_7" Item="Invalid date" />
-                            </If.Then>
-                          </If>
+                          <AddToCollection x:TypeArguments="x:String" Collection="[list_Violations]" DisplayName="Add Invalid date" sap:VirtualizedContainerService.HintSize="200,22" sap2010:WorkflowViewState.IdRef="AddToCollection_7" Item="Invalid date" />
                         </If.Then>
-                        <If.Else>
-                          <AddToCollection x:TypeArguments="x:String" Collection="[list_Violations]" DisplayName="Add Invalid date format" sap:VirtualizedContainerService.HintSize="200,22" sap2010:WorkflowViewState.IdRef="AddToCollection_8" Item="Invalid date" />
-                        </If.Else>
                       </If>
                       
                       <!-- Final Outcome Determination -->
