@@ -41,23 +41,37 @@ export default function VerificationEngine() {
     setLogs((prev) => [{ id: Date.now() + Math.random(), timestamp, msg, type }, ...prev]);
   };
 
-  const fetchRpaStatus = async () => {
+  const fetchRpaStatus = async (isManual = false) => {
     try {
-      setLoading(true);
+      if (isManual) setLoading(true);
       const res = await rpaAPI.getStatus();
       if (res.data.success) {
-        setStatus(res.data);
+        setStatus((prev) => {
+          if (prev && prev.pendingClaims > 0 && res.data.pendingClaims === 0) {
+            addLog('UiPath Bot run detected: Results auto-synced to MySQL! (0 pending remaining)', 'success');
+          }
+          return res.data;
+        });
       }
     } catch (err) {
-      addLog(`Failed to fetch RPA engine status: ${err.message}`, 'error');
+      if (isManual) {
+        addLog(`Failed to fetch RPA engine status: ${err.message}`, 'error');
+      }
     } finally {
-      setLoading(false);
+      if (isManual) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchRpaStatus();
+    fetchRpaStatus(true);
     addLog('RPA Verification Engine dashboard initialized.', 'info');
+
+    // Live 3-second polling interval so external UiPath Studio runs update the UI automatically
+    const interval = setInterval(() => {
+      fetchRpaStatus(false);
+    }, 3000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const handleExport = async (forceAll = false) => {
@@ -190,9 +204,14 @@ export default function VerificationEngine() {
                 <RotateCcw className={`w-3.5 h-3.5 ${resetting ? 'animate-spin text-rose-500' : ''}`} />
                 <span>Reset Demo Batch</span>
               </button>
+              <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Live Auto-Sync</span>
+              </div>
               <button
-                onClick={fetchRpaStatus}
+                onClick={() => fetchRpaStatus(true)}
                 className="p-1.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-blue-600 text-xs inline-flex items-center gap-1 shadow-xs cursor-pointer"
+                title="Manual refresh"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
                 <span className="hidden sm:inline">Refresh</span>

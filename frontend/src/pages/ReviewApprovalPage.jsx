@@ -30,9 +30,9 @@ export default function ReviewApprovalPage() {
   const [aiNote, setAiNote] = useState(null);
   const [loadingAi, setLoadingAi] = useState(false);
 
-  const fetchPendingReviews = async () => {
+  const fetchPendingReviews = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const res = await claimsAPI.getAll();
       if (res.data.success) {
         // Filter claims that need admin decision
@@ -44,13 +44,21 @@ export default function ReviewApprovalPage() {
     } catch (err) {
       console.error('Failed to load claims for review:', err);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchPendingReviews();
-  }, []);
+    fetchPendingReviews(true);
+
+    const interval = setInterval(() => {
+      if (!isReviewModalOpen) {
+        fetchPendingReviews(false);
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [isReviewModalOpen]);
 
   const handleOpenReview = async (claim) => {
     setSelectedClaim(claim);
