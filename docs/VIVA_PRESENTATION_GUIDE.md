@@ -51,7 +51,7 @@
 - **Point to Live Log Console**: *"Notice the step-by-step stream:
   - Step 1/3: Auto-syncing latest MySQL claims into `claims_input.xlsx`
   - Step 2/3: Executing UiPath Bot Verification (Category limits, receipts, duplicates, dates)
-  - Step 3/3: Ingestion complete! 16 claims evaluated (7 Verified, 8 Flagged, 1 Rejected)."*
+  - Step 3/3: Ingestion complete! 16 claims evaluated (7 Verified, 5 Flagged, 4 Rejected)."*
 
 ---
 
@@ -82,7 +82,7 @@
 
 ---
 
-## ❓ Part 2: Top 20 Technical Examiner Questions & Answers
+## ❓ Part 2: Top 21 Technical Examiner Questions & Answers
 
 ### Q1: Why did you decouple the system using Excel workbooks rather than having UiPath query MySQL directly?
 **Answer**:
@@ -210,3 +210,12 @@
 ### Q20: Why are clean claims marked 'Verified - Pending Approval' instead of 'Approved' directly by the bot?
 **Answer**:
 > *"In enterprise accounting and compliance (such as Sarbanes-Oxley / SOX Act and ISO 27001), automated software robots are never legally permitted to disburse corporate capital without human managerial authorization. Our architecture enforces **Human-in-the-Loop (HITL)** governance: the UiPath bot audits and flags policy variances, setting clean claims to 'Verified - Pending Approval' (Pending Admin). The human finance manager retains final statutory sign-off authority to click 'Approve' and release payment."*
+
+---
+
+### Q21: When does the UiPath bot automatically set a claim to 'Rejected' versus 'Flagged'?
+**Answer**:
+> *"Our verification engine separates policy variances into two clear operational tiers:
+> 1. **Autonomous Hard Rejections (`Rejected` - Red Badge)**: Applied to fatal policy breaches where reimbursement is strictly prohibited: in-batch duplicate claim codes (Rule 1), amounts exceeding the category budget ceiling (Rule 3), and receipt-to-category mismatches (e.g. attaching a Travel bill to a Meals claim).
+> 2. **Procedural Exceptions (`Flagged` - Amber Badge)**: Applied to items that require human managerial evaluation or employee correction: missing receipt files where proof was required (Rule 4), future or unparseable expense dates (Rule 5), and unrecognized or missing category names (Rule 2).
+> This strict separation ensures that fraudulent or over-budget claims are halted immediately, while procedural oversights can be sent back to the employee via 'Needs Correction' without restarting the process."*

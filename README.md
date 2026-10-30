@@ -76,6 +76,8 @@ In modern enterprises, expense auditing requires finance teams to manually compa
 - **1-Click Web Bot Simulation**: Instant execution directly from the web portal via `POST /api/rpa/simulate`, auto-syncing MySQL claims, executing the 5 verification rules, and committing results in a single click.
 - **Zero-Touch Ingestion (Chokidar)**: Background file watcher listens to `rpa/output/claims_verified.xlsx` with stability thresholds, automatically ingesting results without requiring manual admin intervention.
 - **1-Click System Launcher (`start_project.bat`)**: Dual-process launcher script starting backend (port 5000), frontend (port 5173), and launching the browser automatically.
+- **Universal Visual Rule & Role-Scoped Navigation**: Strict system-wide color badging via `ViolationBadge.jsx` (Red for Rejected violations, Amber for Flagged exceptions, Slate for Clean). Role-scoped sidebar cleanly separates Employee submission tools from Enterprise Administrative & RPA controls.
+- **Receipt Category Mismatch Verification (`receiptVerifier.js`)**: Automatically extracts text from uploaded PDF receipts to detect cross-category misfilings (such as submitting a ₹5,000 Travel bill under the ₹1,000 Meals category), triggering automated rejection.
 
 ---
 
@@ -102,15 +104,15 @@ The preloaded database includes 16 canonical benchmark claims:
 | Claim Code | Employee | Category | Amount (₹) | Receipt Attached | Edge Case / Scenario | Expected Outcome |
 |---|---|---|---|---|---|---|
 | `CLM-2026-001` | Rahul Sharma | Meals | ₹750.00 | Yes | Within ₹1,000 limit | **Verified - Pending Approval** |
-| `CLM-2026-002` | Rahul Sharma | Meals | ₹2,400.00 | Yes | Exceeds ₹1,000 limit | **Flagged** (`Exceeds category limit`) |
+| `CLM-2026-002` | Rahul Sharma | Meals | ₹2,400.00 | Yes | Exceeds ₹1,000 limit | **Rejected** (`Exceeds category limit`) |
 | `CLM-2026-003` | Priya Patel | Travel | ₹3,200.00 | No | Receipt required for Travel | **Flagged** (`Receipt missing`) |
 | `CLM-2026-004` | Priya Patel | Office Supplies | ₹1,200.00 | Yes | Future date (`2026-11-20`) | **Flagged** (`Invalid date`) |
 | `CLM-2026-005` | Amit Verma | *(NULL)* | ₹1,800.00 | Yes | Missing category | **Flagged** (`Incomplete claim`) |
 | `CLM-2026-006` | Rahul Sharma | Travel | ₹4,500.00 | Yes | Valid claim (within ₹5,000 limit) | **Verified - Pending Approval** |
 | `CLM-2026-006` | Rahul Sharma | Travel | ₹4,500.00 | Yes | Duplicate claim code submission | **Rejected** (`Duplicate submission`) |
-| `CLM-2026-007` | Amit Verma | Meals | ₹3,500.00 | No | Multi-violation (Limit + Receipt) | **Flagged** (`Exceeds category limit; Receipt missing`) |
+| `CLM-2026-007` | Amit Verma | Meals | ₹3,500.00 | No | Multi-violation (Limit + Receipt + Date) | **Rejected** (`Exceeds category limit; Receipt missing; Invalid date`) |
 | `CLM-2026-008` | Priya Patel | Accommodation | ₹6,800.00 | Yes | Within ₹8,000 limit | **Verified - Pending Approval** |
-| `CLM-2026-009` | Priya Patel | Accommodation | ₹11,500.00 | Yes | Exceeds ₹8,000 limit | **Flagged** (`Exceeds category limit`) |
+| `CLM-2026-009` | Priya Patel | Accommodation | ₹11,500.00 | Yes | Exceeds ₹8,000 limit | **Rejected** (`Exceeds category limit`) |
 | `CLM-2026-010` | Rahul Sharma | Client Entertainment | ₹2,750.00 | Yes | Within ₹3,000 limit | **Verified - Pending Approval** |
 | `CLM-2026-011` | Priya Patel | Certifications | ₹14,500.00 | Yes | Within ₹15,000 limit | **Verified - Pending Approval** |
 | `CLM-2026-012` | Amit Verma | Office Supplies | ₹950.00 | No | Missing receipt | **Flagged** (`Receipt missing`) |
@@ -120,8 +122,8 @@ The preloaded database includes 16 canonical benchmark claims:
 
 **Batch Distribution Breakdown**:
 - **Verified - Pending Approval**: 7 claims (43.75%)
-- **Flagged**: 8 claims (50.00%)
-- **Rejected**: 1 claim (6.25%)
+- **Flagged**: 5 claims (31.25%)
+- **Rejected**: 4 claims (25.00%)
 - **Total Evaluated**: 16 claims (100.0%)
 
 ---
@@ -214,6 +216,7 @@ E:\RPA 1\
 │   │   ├── excelGenerator.js        # Exports claims & policies to claims_input.xlsx
 │   │   ├── excelParser.js           # SheetJS (xlsx) parser for claims_verified.xlsx
 │   │   ├── fileWatcher.js           # Chokidar auto-import file watcher on rpa/output/
+│   │   ├── receiptVerifier.js       # PDF text receipt category mismatch analyzer
 │   │   └── riskScore.js             # Deterministic 0-100 statistical risk scorer (6 signals)
 │   ├── uploads/                     # Uploaded receipts storage
 │   ├── .env                         # Database, JWT, and Groq API configuration
@@ -221,7 +224,7 @@ E:\RPA 1\
 │
 ├── frontend/                        # React 18 + Vite Web Application
 │   ├── src/
-│   │   ├── components/              # Navbar, Sidebar, Modal, StatusBadge, StatCards
+│   │   ├── components/              # Navbar, Sidebar, Modal, StatusBadge, ViolationBadge, StatCards
 │   │   ├── pages/                   # DashboardPage, EmployeePortal, ClaimsManagement,
 │   │   │                            # VerificationEngine, ReviewApprovalPage, BotMonitoringPage,
 │   │   │                            # PolicyConfigPage, AuditLogsPage, ReportsPage
@@ -252,7 +255,7 @@ E:\RPA 1\
 │   └── results.md                   # Generated empirical verification evidence
 │
 ├── docs/                            # Capstone Presentation & Viva Documentation
-│   └── VIVA_PRESENTATION_GUIDE.md   # Complete 8-minute presentation script & 20 Q&As
+│   └── VIVA_PRESENTATION_GUIDE.md   # Complete 8-minute presentation script & 21 Q&As
 │
 ├── REPORT.md                        # Formal Academic Final Capstone Project Report
 ├── start_project.bat                # 1-Click launcher script for backend & frontend
@@ -289,5 +292,5 @@ E:\RPA 1\
 
 ## 🎓 Viva & Presentation Resources
 
-- **Presentation Script & Examiner Q&As**: See [docs/VIVA_PRESENTATION_GUIDE.md](file:///e:/RPA%201/docs/VIVA_PRESENTATION_GUIDE.md) for the 8-minute timed presentation script and 20 examiner technical questions.
+- **Presentation Script & Examiner Q&As**: See [docs/VIVA_PRESENTATION_GUIDE.md](file:///e:/RPA%201/docs/VIVA_PRESENTATION_GUIDE.md) for the 8-minute timed presentation script and 21 examiner technical questions.
 - **Academic Capstone Report**: See [REPORT.md](file:///e:/RPA%201/REPORT.md) for the complete academic report covering problem formulation, methodology, architectural design, verification algorithms, empirical test outcomes, and limitations.

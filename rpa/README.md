@@ -186,10 +186,13 @@ node rpa/simulate_bot.js
    - *Resolution*: Configured `awaitWriteFinish: { stabilityThreshold: 2000, pollInterval: 200 }` in `fileWatcher.js`, wrapped parsing in a retry scope, and safely logged failed attempts into `bot_runs` telemetry without crashing the server.
 6. **Future Date Evaluation in Windows Workflow Foundation (WWF)**:
    - *Cause*: `DateTime.TryParse(str_ExpenseDate, dt_ParsedExpenseDate)` inside a WWF `If Condition` expression passes variables `ByRef`. In WWF expression evaluation trees, `ByRef` parameter mutations are discarded, leaving `dt_ParsedExpenseDate` at its default uninitialized date (`0001-01-01`), which prevented future dates (such as `2026-11-20` on `CLM-2026-004`) from being detected.
-   - *Resolution*: Updated the evaluation condition to `[If(DateTime.TryParse(str_ExpenseDate, Nothing), DateTime.Parse(str_ExpenseDate).Date > DateTime.Today, True)]`, achieving 100% detection parity between UiPath Studio and the companion simulator (7 Verified, 8 Flagged, 1 Rejected).
+   - *Resolution*: Updated the evaluation condition to `[If(DateTime.TryParse(str_ExpenseDate, Nothing), DateTime.Parse(str_ExpenseDate).Date > DateTime.Today, True)]`, achieving 100% detection parity between UiPath Studio and the companion simulator (7 Verified, 5 Flagged, 4 Rejected).
 7. **Non-Positive Amount Validation (`dbl_Amount <= 0`)**:
    - *Cause*: Negative or zero values (e.g. ₹-150.00) would satisfy `dbl_Amount <= AppliedLimit` because negative values are numerically less than positive limits, allowing corrupt/malicious claims to pass boundary checks.
    - *Resolution*: Added an explicit check `[dbl_Amount <= 0]` that appends `"Invalid amount"` to `list_Violations` and marks the claim `Flagged`.
+8. **Autonomous Rejection on Category Limit Breaches & Category Mismatches**:
+   - *Cause*: Financial compliance requires hard rejections for strict policy violations (such as submitting ₹5,000 under a ₹1,000 Meals limit, or attaching a Travel receipt to a Meals claim).
+   - *Resolution*: `Main.xaml` enforces `str_Outcome = [If(isDuplicate OrElse list_Violations.Contains("Exceeds category limit") OrElse list_Violations.Any(Function(v) v.Contains("Category mismatch")), "Rejected", If(list_Violations.Count > 0, "Flagged", "Verified - Pending Approval"))]`. This immediately routes critical breaches to `Rejected` with red badge badging.
 
 ---
 

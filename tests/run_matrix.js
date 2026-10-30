@@ -341,10 +341,10 @@ async function main() {
 
   md += `
 ### Summary of Matrix Distribution
-- **Verified - Pending Approval**: 7 claims
-- **Flagged**: 8 claims
-- **Rejected**: 1 claim (\`CLM-2026-006\` duplicate submission)
-- **Total Claims Evaluated**: 16 claims
+- **Verified - Pending Approval**: 7 claims (43.75%)
+- **Flagged**: 5 claims (31.25%)
+- **Rejected**: 4 claims (25.00%)
+- **Total Claims Evaluated**: 16 claims (100.0%)
 
 ---
 

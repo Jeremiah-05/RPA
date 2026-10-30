@@ -441,21 +441,27 @@ The application includes 16 pre-seeded test claims covering all edge cases:
 | Claim Code | Employee | Category | Amount (₹) | Receipt | Test Scenario | Verified Outcome | Rule Triggered |
 |---|---|---|---|---|---|---|---|
 | `CLM-2026-001` | Rahul Sharma | Meals | ₹750.00 | Yes | Valid meal under limit | **Verified** | Passed all checks |
-| `CLM-2026-002` | Rahul Sharma | Meals | ₹2,400.00 | Yes | Exceeds ₹1,000 cap | **Flagged** | Rule 3: Exceeds limit |
+| `CLM-2026-002` | Rahul Sharma | Meals | ₹2,400.00 | Yes | Exceeds ₹1,000 cap | **Rejected** | Rule 3: Exceeds limit |
 | `CLM-2026-003` | Priya Patel | Travel | ₹3,200.00 | No | Missing required receipt | **Flagged** | Rule 4: Receipt missing |
 | `CLM-2026-004` | Priya Patel | Office Supplies | ₹1,200.00 | Yes | Future date (`2026-11-20`) | **Flagged** | Rule 5: Invalid date |
 | `CLM-2026-005` | Amit Verma | *(NULL)* | ₹1,800.00 | Yes | Missing category | **Flagged** | Rule 2: Incomplete claim |
 | `CLM-2026-006` | Rahul Sharma | Travel | ₹4,500.00 | Yes | First valid submission | **Verified** | Passed all checks |
 | `CLM-2026-006` | Rahul Sharma | Travel | ₹4,500.00 | Yes | Duplicate claim code | **Rejected** | Rule 1: Duplicate submission |
-| `CLM-2026-007` | Amit Verma | Meals | ₹3,500.00 | No | Multi-violation (Limit + Receipt + Date) | **Flagged** | Rules 3, 4, 5 (Concatenated) |
+| `CLM-2026-007` | Amit Verma | Meals | ₹3,500.00 | No | Multi-violation (Limit + Receipt + Date) | **Rejected** | Rule 3 & 4: Exceeds limit; Receipt missing |
 | `CLM-2026-008` | Priya Patel | Accommodation | ₹6,800.00 | Yes | Valid accommodation | **Verified** | Passed all checks |
-| `CLM-2026-009` | Priya Patel | Accommodation | ₹11,500.00 | Yes | Exceeds ₹8,000 cap | **Flagged** | Rule 3: Exceeds limit |
+| `CLM-2026-009` | Priya Patel | Accommodation | ₹11,500.00 | Yes | Exceeds ₹8,000 cap | **Rejected** | Rule 3: Exceeds limit |
 | `CLM-2026-010` | Rahul Sharma | Client Entertainment | ₹2,750.00 | Yes | Valid entertainment | **Verified** | Passed all checks |
 | `CLM-2026-011` | Priya Patel | Certifications | ₹14,500.00 | Yes | Valid certification | **Verified** | Passed all checks |
 | `CLM-2026-012` | Amit Verma | Office Supplies | ₹950.00 | No | Missing receipt | **Flagged** | Rule 4: Receipt missing |
 | `CLM-2026-013` | Rahul Sharma | Gym Membership | ₹2,500.00 | Yes | Unrecognized category | **Flagged** | Rule 2: Category not recognized |
 | `CLM-2026-014` | Amit Verma | Meals | ₹1,000.00 | Yes | Exact boundary (₹1,000 == limit) | **Verified** | Passed all checks |
 | `CLM-2026-015` | Rahul Sharma | Travel | ₹1,450.00 | Yes | Valid local travel | **Verified** | Passed all checks |
+
+**Empirical Batch Distribution**:
+- **Verified - Pending Approval**: 7 claims (43.75%)
+- **Flagged**: 5 claims (31.25%)
+- **Rejected**: 4 claims (25.00%)
+- **Total Evaluated**: 16 claims (100.0%)
 
 ---
 
