@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../components/common/Navbar';
 import StatusBadge from '../components/common/StatusBadge';
+import ViolationBadge from '../components/common/ViolationBadge';
 import { claimsAPI, reportAPI } from '../services/api';
 import { 
   FileBarChart2, 
@@ -178,10 +179,15 @@ export default function ReportsPage() {
                     <td className="py-3 px-4">
                       <StatusBadge status={claim.status} size="sm" />
                     </td>
-                    <td className="py-3 px-4 max-w-sm truncate">
-                      {activeTab === 'flagged' 
-                        ? (claim.bot_violations || 'Exception flagged') 
-                        : (claim.admin_comments || 'Verified')}
+                    <td className="py-3 px-4 max-w-sm">
+                      {activeTab === 'flagged' ? (
+                        <ViolationBadge violations={claim.bot_violations || 'Exception flagged'} status={claim.status} />
+                      ) : (
+                        <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded text-[11px] font-medium inline-flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          <span>{claim.admin_comments || 'Verified'}</span>
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}

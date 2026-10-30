@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../components/common/Navbar';
 import StatusBadge from '../components/common/StatusBadge';
+import ViolationBadge from '../components/common/ViolationBadge';
 import Modal from '../components/common/Modal';
 import { claimsAPI, policyAPI } from '../services/api';
 import { 
@@ -200,7 +201,7 @@ export default function EmployeePortal() {
                   </tr>
                 ) : (
                   claims.map((claim) => {
-                    const isEditable = claim.status === 'Submitted' || claim.status === 'Needs Correction';
+                    const isEditable = claim.status === 'Submitted' || claim.status === 'Needs Correction' || claim.status === 'Rejected';
 
                     return (
                       <tr key={claim.id} className="hover:bg-slate-50/70 transition-colors">
@@ -224,14 +225,7 @@ export default function EmployeePortal() {
                           <StatusBadge status={claim.status} size="sm" />
                         </td>
                         <td className="py-3 px-4 max-w-xs">
-                          {claim.bot_violations ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                              <AlertCircle className="w-3 h-3 shrink-0" />
-                              <span className="truncate">{claim.bot_violations}</span>
-                            </span>
-                          ) : (
-                            <span className="text-slate-400 text-[11px]">No violations</span>
-                          )}
+                          <ViolationBadge violations={claim.bot_violations} status={claim.status} cleanLabel="No violations" />
                         </td>
                         <td className="py-3 px-4 text-center">
                           {claim.receipt_path ? (

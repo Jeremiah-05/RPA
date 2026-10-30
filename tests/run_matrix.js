@@ -26,15 +26,15 @@ const resultsDoc = path.resolve(__dirname, 'results.md');
 // Canonical 16 Seed Expected Outcomes
 const EXPECTED_MATRIX = [
   { code: 'CLM-2026-001', category: 'Meals', amount: 750, expected: 'Verified - Pending Approval', note: 'Within ₹1,000 limit' },
-  { code: 'CLM-2026-002', category: 'Meals', amount: 2400, expected: 'Flagged', note: 'Exceeds ₹1,000 limit' },
+  { code: 'CLM-2026-002', category: 'Meals', amount: 2400, expected: 'Rejected', note: 'Exceeds ₹1,000 limit' },
   { code: 'CLM-2026-003', category: 'Travel', amount: 3200, expected: 'Flagged', note: 'Receipt required for Travel' },
   { code: 'CLM-2026-004', category: 'Office Supplies', amount: 1200, expected: 'Flagged', note: 'Future date (2026-11-20)' },
   { code: 'CLM-2026-005', category: null, amount: 1800, expected: 'Flagged', note: 'Missing category (Incomplete claim)' },
   { code: 'CLM-2026-006', category: 'Travel', amount: 4500, expected: 'Verified - Pending Approval', note: 'First valid submission' },
   { code: 'CLM-2026-006', category: 'Travel', amount: 4500, expected: 'Rejected', note: 'Duplicate submission in batch' },
-  { code: 'CLM-2026-007', category: 'Meals', amount: 3500, expected: 'Flagged', note: 'Multi-violation (Limit + Receipt + Date)' },
+  { code: 'CLM-2026-007', category: 'Meals', amount: 3500, expected: 'Rejected', note: 'Multi-violation (Limit + Receipt + Date)' },
   { code: 'CLM-2026-008', category: 'Accommodation', amount: 6800, expected: 'Verified - Pending Approval', note: 'Within ₹8,000 limit' },
-  { code: 'CLM-2026-009', category: 'Accommodation', amount: 11500, expected: 'Flagged', note: 'Exceeds ₹8,000 limit' },
+  { code: 'CLM-2026-009', category: 'Accommodation', amount: 11500, expected: 'Rejected', note: 'Exceeds ₹8,000 limit' },
   { code: 'CLM-2026-010', category: 'Client Entertainment', amount: 2750, expected: 'Verified - Pending Approval', note: 'Within ₹3,000 limit' },
   { code: 'CLM-2026-011', category: 'Certifications', amount: 14500, expected: 'Verified - Pending Approval', note: 'Within ₹15,000 limit' },
   { code: 'CLM-2026-012', category: 'Office Supplies', amount: 950, expected: 'Flagged', note: 'Missing receipt' },

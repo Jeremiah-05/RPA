@@ -87,10 +87,11 @@ The UiPath RPA bot executes the following 5 validation rules across every claim:
 |---|---|---|---|---|
 | **1** | **Duplicate Claim Check** | `ClaimCode` has been processed previously in current batch | `"Duplicate submission"` | `Rejected` |
 | **2** | **Category Recognition** | `Category` is blank or missing from `Policies` table | `"Incomplete claim"` or `"Category not recognized"` | `Flagged` |
-| **3** | **Budget Limit Enforcement** | `Amount > MaxLimit` for that specific category | `"Exceeds category limit"` | `Flagged` |
-| **4** | **Mandatory Receipt Proof** | `ReceiptRequired == True` AND `ReceiptPath` is empty/missing | `"Receipt missing"` | `Flagged` |
+| **3** | **Budget Limit Enforcement** | `Amount > MaxLimit` for that specific category | `"Exceeds category limit"` | `Rejected` |
+| **4a** | **Mandatory Receipt Proof** | `ReceiptRequired == True` AND `ReceiptPath` is empty/missing | `"Receipt missing"` | `Flagged` |
+| **4b** | **Receipt Category Mismatch** | Uploaded receipt text/category differs from claimed category | `"Category mismatch (Receipt is for ..., Claim is ...)"` | `Rejected` |
 | **5** | **Expense Date Validation** | `ExpenseDate > Today` OR invalid date format | `"Invalid date"` | `Flagged` |
-| **-** | **Clean / Valid Claim** | All 5 checks pass with 0 violations | *(No violations recorded)* | `Verified - Pending Approval` |
+| **-** | **Clean / Valid Claim** | All checks pass with 0 violations | *(No violations recorded)* | `Verified - Pending Approval` |
 
 ---
 
@@ -251,7 +252,7 @@ E:\RPA 1\
 │   └── results.md                   # Generated empirical verification evidence
 │
 ├── docs/                            # Capstone Presentation & Viva Documentation
-│   └── VIVA_PRESENTATION_GUIDE.md   # Complete 8-minute presentation script & 18 Q&As
+│   └── VIVA_PRESENTATION_GUIDE.md   # Complete 8-minute presentation script & 20 Q&As
 │
 ├── REPORT.md                        # Formal Academic Final Capstone Project Report
 ├── start_project.bat                # 1-Click launcher script for backend & frontend
@@ -288,5 +289,5 @@ E:\RPA 1\
 
 ## 🎓 Viva & Presentation Resources
 
-- **Presentation Script & Examiner Q&As**: See [docs/VIVA_PRESENTATION_GUIDE.md](file:///e:/RPA%201/docs/VIVA_PRESENTATION_GUIDE.md) for the 8-minute timed presentation script and 18 examiner technical questions.
+- **Presentation Script & Examiner Q&As**: See [docs/VIVA_PRESENTATION_GUIDE.md](file:///e:/RPA%201/docs/VIVA_PRESENTATION_GUIDE.md) for the 8-minute timed presentation script and 20 examiner technical questions.
 - **Academic Capstone Report**: See [REPORT.md](file:///e:/RPA%201/REPORT.md) for the complete academic report covering problem formulation, methodology, architectural design, verification algorithms, empirical test outcomes, and limitations.

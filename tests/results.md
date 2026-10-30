@@ -1,5 +1,5 @@
 # Empirical Test Verification Evidence & Matrix Results
-**Test Execution Timestamp**: `2026-10-28 20:20:22`  
+**Test Execution Timestamp**: `2026-10-29 07:10:56`  
 **Overall Benchmark Matrix Pass Rate**: **100.0%** (16/16 Passed)  
 **Execution Environment**: Node.js Companion Simulator mirroring UiPath Studio `Main.xaml` rules  
 
@@ -10,15 +10,15 @@
 | # | Claim Code | Expected Outcome | Actual Outcome | Status | Detected Violations | Test Scenario / Scenario Note |
 |---|---|---|---|---|---|---|
 | 1 | `CLM-2026-001` | Verified - Pending Approval | Verified - Pending Approval | ✅ **PASS** | *(None)* | Within ₹1,000 limit |
-| 2 | `CLM-2026-002` | Flagged | Flagged | ✅ **PASS** | Exceeds category limit | Exceeds ₹1,000 limit |
+| 2 | `CLM-2026-002` | Rejected | Rejected | ✅ **PASS** | Exceeds category limit | Exceeds ₹1,000 limit |
 | 3 | `CLM-2026-003` | Flagged | Flagged | ✅ **PASS** | Receipt missing | Receipt required for Travel |
 | 4 | `CLM-2026-004` | Flagged | Flagged | ✅ **PASS** | Invalid date | Future date (2026-11-20) |
 | 5 | `CLM-2026-005` | Flagged | Flagged | ✅ **PASS** | Incomplete claim | Missing category (Incomplete claim) |
 | 6 | `CLM-2026-006` | Verified - Pending Approval | Verified - Pending Approval | ✅ **PASS** | *(None)* | First valid submission |
 | 7 | `CLM-2026-006` | Rejected | Rejected | ✅ **PASS** | Duplicate submission | Duplicate submission in batch |
-| 8 | `CLM-2026-007` | Flagged | Flagged | ✅ **PASS** | Exceeds category limit; Receipt missing; Invalid date | Multi-violation (Limit + Receipt + Date) |
+| 8 | `CLM-2026-007` | Rejected | Rejected | ✅ **PASS** | Exceeds category limit; Receipt missing; Invalid date | Multi-violation (Limit + Receipt + Date) |
 | 9 | `CLM-2026-008` | Verified - Pending Approval | Verified - Pending Approval | ✅ **PASS** | *(None)* | Within ₹8,000 limit |
-| 10 | `CLM-2026-009` | Flagged | Flagged | ✅ **PASS** | Exceeds category limit | Exceeds ₹8,000 limit |
+| 10 | `CLM-2026-009` | Rejected | Rejected | ✅ **PASS** | Exceeds category limit | Exceeds ₹8,000 limit |
 | 11 | `CLM-2026-010` | Verified - Pending Approval | Verified - Pending Approval | ✅ **PASS** | *(None)* | Within ₹3,000 limit |
 | 12 | `CLM-2026-011` | Verified - Pending Approval | Verified - Pending Approval | ✅ **PASS** | *(None)* | Within ₹15,000 limit |
 | 13 | `CLM-2026-012` | Flagged | Flagged | ✅ **PASS** | Receipt missing | Missing receipt |

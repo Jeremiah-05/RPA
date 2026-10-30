@@ -316,11 +316,11 @@ async function updateClaim(req, res) {
       return res.status(403).json({ success: false, message: 'Cannot edit another employee’s claim.' });
     }
 
-    // Editable status restriction
-    if (claim.status !== 'Submitted' && claim.status !== 'Needs Correction') {
+    // Editable status restriction: Submitted, Needs Correction, or Rejected claims can be modified
+    if (claim.status !== 'Submitted' && claim.status !== 'Needs Correction' && claim.status !== 'Rejected') {
       return res.status(400).json({
         success: false,
-        message: `Claim cannot be edited while in status '${claim.status}'. Only 'Submitted' or 'Needs Correction' claims are eligible for modification.`
+        message: `Claim cannot be edited while in status '${claim.status}'. Only 'Submitted', 'Needs Correction', or 'Rejected' claims are eligible for modification.`
       });
     }
 

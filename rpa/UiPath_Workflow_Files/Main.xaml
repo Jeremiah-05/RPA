@@ -303,7 +303,7 @@
                           <OutArgument x:TypeArguments="x:String">[str_Outcome]</OutArgument>
                         </Assign.To>
                         <Assign.Value>
-                          <InArgument x:TypeArguments="x:String">[If(isDuplicate, "Rejected", If(list_Violations.Count &gt; 0, "Flagged", "Verified - Pending Approval"))]</InArgument>
+                          <InArgument x:TypeArguments="x:String">[If(isDuplicate OrElse list_Violations.Contains("Exceeds category limit") OrElse list_Violations.Any(Function(v) v.Contains("Category mismatch")), "Rejected", If(list_Violations.Count &gt; 0, "Flagged", "Verified - Pending Approval"))]</InArgument>
                         </Assign.Value>
                       </Assign>
                       

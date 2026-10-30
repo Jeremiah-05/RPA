@@ -12,6 +12,7 @@
 const ExcelJS = require('../backend/node_modules/exceljs');
 const path = require('path');
 const fs = require('fs');
+const { inspectReceiptCategory } = require('../backend/utils/receiptVerifier');
 
 /**
  * Reusable Retry Scope: executes an operation up to maxRetries times
@@ -113,13 +114,17 @@ async function runBotSimulation() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    const rowsToProcess = [];
     claimsSheet.eachRow((row, rowNumber) => {
       if (rowNumber === 1) return;
+      rowsToProcess.push({ row, rowNumber });
+    });
 
+    for (const { row, rowNumber } of rowsToProcess) {
       // Per-Row Safety Try-Catch: Prevents one bad row from terminating the entire batch
       try {
         const claimId = row.getCell(claimsHeaderMap['claimid']).value;
-        if (!claimId) return; // Skip blank rows
+        if (!claimId) continue; // Skip blank rows
 
         const claimCode = row.getCell(claimsHeaderMap['claimcode']).value?.toString().trim() || '';
         const employeeName = row.getCell(claimsHeaderMap['employeename'] || 3).value?.toString().trim() || 'N/A';
@@ -139,6 +144,8 @@ async function runBotSimulation() {
 
         const violations = [];
         let isDuplicate = false;
+        let exceedsLimit = false;
+        let isCategoryMismatch = false;
 
         // Check for non-positive amount
         if (amount <= 0) {
@@ -160,18 +167,32 @@ async function runBotSimulation() {
           violations.push('Category not recognized');
         }
 
-        // Rule 3: Category Limit check
+        // Rule 3: Category Limit check (Critical policy rule: over-limit claims rejected)
         let appliedLimit = null;
         if (category && policyLimits[category] !== undefined) {
           appliedLimit = policyLimits[category];
           if (amount > appliedLimit) {
             violations.push('Exceeds category limit');
+            exceedsLimit = true;
           }
         }
 
         // Rule 4: Missing receipt check
         if (category && receiptRequired[category] === true && !receiptPath) {
           violations.push('Receipt missing');
+        }
+
+        // Rule 4b: Category Mismatch Check against Uploaded Receipt Proof
+        if (category && receiptPath) {
+          try {
+            const receiptCheck = await inspectReceiptCategory(receiptPath, category);
+            if (receiptCheck.hasMismatch) {
+              violations.push(receiptCheck.violation);
+              isCategoryMismatch = true;
+            }
+          } catch (rErr) {
+            console.warn(`[UiPath Bot] Receipt inspection notice for row ${rowNumber}:`, rErr.message);
+          }
         }
 
         // Rule 5: Expense Date check
@@ -191,9 +212,10 @@ async function runBotSimulation() {
           violations.push('Invalid date');
         }
 
-        // Outcome determination
+        // Outcome determination:
+        // Duplicate submissions, category limit breaches, and receipt category mismatches are REJECTED
         let outcome = 'Verified - Pending Approval';
-        if (isDuplicate) {
+        if (isDuplicate || exceedsLimit || isCategoryMismatch) {
           outcome = 'Rejected';
         } else if (violations.length > 0) {
           outcome = 'Flagged';
@@ -238,7 +260,7 @@ async function runBotSimulation() {
           PolicyLimitApplied: null
         });
       }
-    });
+    }
 
     // --------------------------------------------------------------------------
     // 3. Write Output Workbook with Retry Scope

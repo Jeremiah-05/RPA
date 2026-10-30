@@ -137,7 +137,7 @@ The workflow in [Main.xaml](file:///e:/RPA%201/rpa/UiPath_Workflow_Files/Main.xa
 |---|---|---|---|---|
 | **1** | **Duplicate Submission** | Claim code previously recorded in `list_SeenClaimCodes` | `"Duplicate submission"` | `Rejected` |
 | **2** | **Category Validation** | Category is empty, null, or not in policy dictionary | `"Incomplete claim"` / `"Category not recognized"` | `Flagged` |
-| **3** | **Budget Limit Enforcement** | Claim amount exceeds category cap (`Amount > MaxLimit`) | `"Exceeds category limit"` | `Flagged` |
+| **3** | **Budget Limit Enforcement** | Claim amount exceeds category cap (`Amount > MaxLimit`) | `"Exceeds category limit"` | `Rejected` |
 | **4** | **Receipt Proof Mandate** | Category requires receipt (`True`) AND receipt path is empty | `"Receipt missing"` | `Flagged` |
 | **5** | **Expense Date Validation** | Date is in the future (`Date > Today`) or unparseable | `"Invalid date"` | `Flagged` |
 | **-** | **All Passed** | 0 violations recorded across all 5 checks | *(None)* | `Verified - Pending Approval` |
@@ -184,6 +184,12 @@ node rpa/simulate_bot.js
 5. **Windows File Lock (`EBUSY`) on Excel Output Write**:
    - *Cause*: The Chokidar file watcher detected the initial file creation event while Excel was still flushing its write handle, causing a momentary `EBUSY: resource busy or locked` exception.
    - *Resolution*: Configured `awaitWriteFinish: { stabilityThreshold: 2000, pollInterval: 200 }` in `fileWatcher.js`, wrapped parsing in a retry scope, and safely logged failed attempts into `bot_runs` telemetry without crashing the server.
+6. **Future Date Evaluation in Windows Workflow Foundation (WWF)**:
+   - *Cause*: `DateTime.TryParse(str_ExpenseDate, dt_ParsedExpenseDate)` inside a WWF `If Condition` expression passes variables `ByRef`. In WWF expression evaluation trees, `ByRef` parameter mutations are discarded, leaving `dt_ParsedExpenseDate` at its default uninitialized date (`0001-01-01`), which prevented future dates (such as `2026-11-20` on `CLM-2026-004`) from being detected.
+   - *Resolution*: Updated the evaluation condition to `[If(DateTime.TryParse(str_ExpenseDate, Nothing), DateTime.Parse(str_ExpenseDate).Date > DateTime.Today, True)]`, achieving 100% detection parity between UiPath Studio and the companion simulator (7 Verified, 8 Flagged, 1 Rejected).
+7. **Non-Positive Amount Validation (`dbl_Amount <= 0`)**:
+   - *Cause*: Negative or zero values (e.g. ₹-150.00) would satisfy `dbl_Amount <= AppliedLimit` because negative values are numerically less than positive limits, allowing corrupt/malicious claims to pass boundary checks.
+   - *Resolution*: Added an explicit check `[dbl_Amount <= 0]` that appends `"Invalid amount"` to `list_Violations` and marks the claim `Flagged`.
 
 ---
 

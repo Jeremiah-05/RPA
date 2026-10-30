@@ -268,7 +268,7 @@ bot_runs (RPA execution telemetry & monitoring)
 
 The RPA workflow is implemented in [`rpa/UiPath_Workflow_Files/Main.xaml`](file:///e:/RPA%201/rpa/UiPath_Workflow_Files/Main.xaml) targeting the modern Windows framework.
 
-### 6.1 Memory Caching Architecture
+### 8.1 Memory Caching Architecture
 Rather than hardcoding limits in conditional activities, the bot dynamically builds an in-memory dictionary cache:
 ```vb
 ' Read Policies Sheet into memory
@@ -282,7 +282,7 @@ For Each policyRow In dt_Policies.Rows
 Next
 ```
 
-### 6.2 Dual Fallback File Path Resolution
+### 8.2 Dual Fallback File Path Resolution
 To ensure error-free execution across varying working directories:
 ```vb
 ' str_InputFilePath:
@@ -320,7 +320,7 @@ Every claim row undergoes 5 sequential compliance evaluations:
                                   ▼
                    +──────────────────────────────+
                    |  [RULE 3] Amount <= Limit?   |── No ───> Add "Exceeds category limit"
-                   +──────────────────────────────+           Outcome = "Flagged"
+                   +──────────────────────────────+           Outcome = "Rejected"
                                   │ Yes
                                   ▼
                    +──────────────────────────────+
@@ -339,16 +339,25 @@ Every claim row undergoes 5 sequential compliance evaluations:
                    +──────────────────────────────+
 ```
 
-### Multiple Violations Handling
-If a claim exhibits multiple infractions (e.g. `CLM-2026-007` with budget breach + missing receipt + future expense date), the bot records all violations separated by semicolons:
+### 9.1 Sequential Rule Evaluation Architecture
+Each claim row is parsed into strongly typed variables (`str_ClaimCode`, `str_Category`, `dbl_Amount`, `str_ExpenseDate`, `str_ReceiptPath`). Violations are appended to a temporary list (`list_Violations`).
+- **Autonomous Rejection (Red)**: Triggered if `isDuplicate` (Rule 1), `dbl_Amount > AppliedLimit` (Rule 3), or category mismatch occurs.
+- **Managerial Flagging (Amber)**: Triggered if procedural exceptions occur (Rule 2 unrecognized category, Rule 4 missing receipt proof, Rule 5 invalid date, or non-positive amount).
+- **Verification (Green)**: If no infractions occur, the claim is assigned `Verified - Pending Approval`.
+
+### 9.2 Multiple Violations Handling
+If a claim exhibits multiple infractions (e.g. `CLM-2026-007` with budget breach + missing receipt + future expense date), the bot records all violations concatenated by semicolons:
 `"Exceeds category limit; Receipt missing; Invalid date"`
 This equips human managers with full context during review.
+
+### 9.3 Negative & Zero Value Protection
+To prevent financial discrepancies or malicious zero-value/negative-value submissions from passing boundary checks, an explicit validation condition is enforced (`If dbl_Amount <= 0 Then Add "Invalid amount"`). Claims containing negative or non-positive values are immediately trapped and marked `Flagged`.
 
 ---
 
 ## 10. End-to-End Integration & Auto-Sync Pipeline
 
-### 8.1 Real-Time Background Auto-Synchronization
+### 10.1 Real-Time Background Auto-Synchronization
 Whenever a claim is inserted, updated, or imported via spreadsheet, the Node.js backend triggers `syncClaimsInputExcel()`:
 - Queries all claims matching `status = 'Submitted'`.
 - Formats dates as `YYYY-MM-DD` and currency as `₹#,##0.00`.
@@ -356,7 +365,7 @@ Whenever a claim is inserted, updated, or imported via spreadsheet, the Node.js 
 - Saves `rpa/input/claims_input.xlsx` atomically.
 This guarantees that whenever UiPath Studio runs (<kbd>Ctrl</kbd>+<kbd>F5</kbd>), it always processes the latest live submissions.
 
-### 8.2 Event-Driven Ingestion via Chokidar
+### 10.2 Event-Driven Ingestion via Chokidar
 In `backend/utils/fileWatcher.js`, Chokidar listens for changes to `rpa/output/claims_verified.xlsx`:
 - Configured with `awaitWriteFinish: { stabilityThreshold: 2000, pollInterval: 200 }` to ensure UiPath has closed the Excel write stream before reading.
 - Calls `processRpaResultsImport()`, reading results using SheetJS.
@@ -368,7 +377,7 @@ In `backend/utils/fileWatcher.js`, Chokidar listens for changes to `rpa/output/c
 
 The Executive Analytics Dashboard (`DashboardPage.jsx`) provides financial oversight using **Recharts**:
 
-### 9.1 Rolling 6-Month Spend Trajectory with Spike Markers
+### 11.1 Rolling 6-Month Spend Trajectory with Spike Markers
 To prevent isolated single-month dots, the backend `getDashboardStats` controller constructs a rolling 6-month corporate spend trajectory (May to October 2026):
 - Real claims in MySQL are dynamically aggregated for the live audit period.
 - Preceding months provide benchmark corporate spend data.

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../components/common/Navbar';
 import StatusBadge from '../components/common/StatusBadge';
+import ViolationBadge from '../components/common/ViolationBadge';
 import Modal from '../components/common/Modal';
 import { claimsAPI, aiAPI } from '../services/api';
 import { 
@@ -217,14 +218,7 @@ export default function ReviewApprovalPage() {
                         )}
                       </td>
                       <td className="py-3 px-4 max-w-xs">
-                        {claim.bot_violations ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                            <AlertCircle className="w-3 h-3 shrink-0" />
-                            <span className="truncate">{claim.bot_violations}</span>
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 text-[11px]">No violations</span>
-                        )}
+                        <ViolationBadge violations={claim.bot_violations} status={claim.status} cleanLabel="No violations" />
                       </td>
                       <td className="py-3 px-4 text-center">
                         {claim.receipt_path ? (
@@ -284,7 +278,11 @@ export default function ReviewApprovalPage() {
                 <p className="text-slate-600 italic">"{selectedClaim.description}"</p>
 
                 {selectedClaim.bot_violations && (
-                  <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 font-medium">
+                  <div className={`p-2.5 rounded-lg border font-medium ${
+                    selectedClaim.status === 'Rejected'
+                      ? 'bg-rose-50 border-rose-200 text-rose-800'
+                      : 'bg-amber-50 border-amber-200 text-amber-800'
+                  }`}>
                     <span className="font-bold block mb-0.5">Violations Flagged by UiPath Bot:</span>
                     {selectedClaim.bot_violations}
                   </div>

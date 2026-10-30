@@ -27,17 +27,18 @@ export default function Sidebar() {
 
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Employee Portal', path: '/portal', icon: Send },
-    { name: 'Claims Management', path: '/claims', icon: FileSpreadsheet },
-    // Admin Only Links
+    // Role-Scoped Navigation: Employees access submission portal; Admins access enterprise claims & RPA engine
     ...(isAdmin ? [
+      { name: 'Claims Management', path: '/claims', icon: FileSpreadsheet },
       { name: 'Verification Engine', path: '/verification-engine', icon: Cpu, badge: 'RPA' },
       { name: 'Bot Monitoring', path: '/monitoring', icon: Activity, badge: 'Live' },
       { name: 'Review & Approvals', path: '/review-approval', icon: CheckSquare },
       { name: 'Policy Configuration', path: '/policies', icon: Sliders },
       { name: 'Audit History', path: '/audit-logs', icon: History },
       { name: 'Reports & Export', path: '/reports', icon: FileBarChart2 },
-    ] : [])
+    ] : [
+      { name: 'Employee Portal', path: '/portal', icon: Send },
+    ])
   ];
 
   return (

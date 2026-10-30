@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../components/common/Navbar';
 import StatusBadge from '../components/common/StatusBadge';
+import ViolationBadge from '../components/common/ViolationBadge';
 import Modal from '../components/common/Modal';
 import { claimsAPI, policyAPI } from '../services/api';
 import { 
@@ -234,14 +235,7 @@ export default function ClaimsManagement() {
                         <StatusBadge status={claim.status} size="sm" />
                       </td>
                       <td className="py-3 px-4 max-w-xs">
-                        {claim.bot_violations ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                            <AlertCircle className="w-3 h-3 shrink-0" />
-                            <span className="truncate">{claim.bot_violations}</span>
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 text-[11px]">Clean</span>
-                        )}
+                        <ViolationBadge violations={claim.bot_violations} status={claim.status} cleanLabel="Clean" />
                       </td>
                       <td className="py-3 px-4 text-center">
                         <button
@@ -336,7 +330,9 @@ export default function ClaimsManagement() {
                           </span>
                         </div>
                         {vr.violations && (
-                          <p className="text-amber-800 font-medium text-[11px] pt-1">
+                          <p className={`font-medium text-[11px] pt-1 ${
+                            vr.outcome === 'Rejected' ? 'text-rose-700 font-semibold' : 'text-amber-800'
+                          }`}>
                             Violations: {vr.violations}
                           </p>
                         )}
